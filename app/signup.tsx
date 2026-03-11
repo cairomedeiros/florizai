@@ -1,39 +1,44 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 
-export default function LoginScreen() {
+export default function SignUpScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleLogin = async () => {
-    // TODO: Implement Supabase authentication
-    // const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const handleSignUp = async () => {
+    if (password !== confirmPassword) {
+      console.log('Passwords do not match');
+      return;
+    }
+    // TODO: Implement Supabase sign up
+    // const { data, error } = await supabase.auth.signUp({ email, password });
     router.replace('/(auth)/home');
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleSignUp = async () => {
     // TODO: Implement Supabase Google OAuth
     // const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
-    console.log('Google login');
+    console.log('Google sign up');
   };
 
-  const handleAppleLogin = async () => {
+  const handleAppleSignUp = async () => {
     // TODO: Implement Supabase Apple OAuth
     // const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'apple' });
-    console.log('Apple login');
+    console.log('Apple sign up');
   };
 
   const styles = StyleSheet.create({
@@ -79,24 +84,15 @@ export default function LoginScreen() {
       fontSize: 16,
       color: colors.text,
     },
-    forgotPassword: {
-      alignSelf: 'flex-end',
-      marginTop: 8,
-      marginBottom: 24,
-    },
-    forgotPasswordText: {
-      color: colors.primary,
-      fontSize: 14,
-      fontWeight: '500',
-    },
-    loginButton: {
+    signupButton: {
       backgroundColor: colors.primary,
       padding: 16,
       borderRadius: 12,
       alignItems: 'center',
+      marginTop: 8,
       marginBottom: 24,
     },
-    loginButtonText: {
+    signupButtonText: {
       color: '#ffffff',
       fontSize: 16,
       fontWeight: '600',
@@ -136,20 +132,31 @@ export default function LoginScreen() {
       fontSize: 16,
       fontWeight: '500',
     },
-    signupContainer: {
+    loginContainer: {
       flexDirection: 'row',
       justifyContent: 'center',
       alignItems: 'center',
     },
-    signupText: {
+    loginText: {
       color: colors.textSecondary,
       fontSize: 14,
     },
-    signupLink: {
+    loginLink: {
       color: colors.primary,
       fontSize: 14,
       fontWeight: '600',
       marginLeft: 4,
+    },
+    terms: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: 16,
+      lineHeight: 18,
+    },
+    termsLink: {
+      color: colors.primary,
+      fontWeight: '500',
     },
   });
 
@@ -164,7 +171,7 @@ export default function LoginScreen() {
       >
         <View style={styles.header}>
           <Text style={styles.title}>🌸 FlorizAI</Text>
-          <Text style={styles.subtitle}>Bem-vindo de volta!</Text>
+          <Text style={styles.subtitle}>Crie sua conta</Text>
         </View>
 
         <View style={styles.inputContainer}>
@@ -185,21 +192,36 @@ export default function LoginScreen() {
           <Text style={styles.label}>Senha</Text>
           <TextInput
             style={styles.input}
-            placeholder="••••••••"
+            placeholder="Mínimo 8 caracteres"
             placeholderTextColor={colors.textSecondary}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            autoComplete="password"
+            autoComplete="password-new"
           />
         </View>
 
-        <TouchableOpacity style={styles.forgotPassword}>
-          <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
-        </TouchableOpacity>
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Confirmar Senha</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Digite a senha novamente"
+            placeholderTextColor={colors.textSecondary}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            autoComplete="password-new"
+          />
+        </View>
 
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginButtonText}>Entrar</Text>
+        <Text style={styles.terms}>
+          Ao criar uma conta, você concorda com nossos{' '}
+          <Text style={styles.termsLink}>Termos de Uso</Text> e{' '}
+          <Text style={styles.termsLink}>Política de Privacidade</Text>
+        </Text>
+
+        <TouchableOpacity style={styles.signupButton} onPress={handleSignUp}>
+          <Text style={styles.signupButtonText}>Criar Conta</Text>
         </TouchableOpacity>
 
         <View style={styles.divider}>
@@ -209,21 +231,21 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.socialButtons}>
-          <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
+          <TouchableOpacity style={styles.socialButton} onPress={handleGoogleSignUp}>
             <Text style={{ fontSize: 20 }}>🔍</Text>
             <Text style={styles.socialButtonText}>Continuar com Google</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.socialButton} onPress={handleAppleLogin}>
+          <TouchableOpacity style={styles.socialButton} onPress={handleAppleSignUp}>
             <Text style={{ fontSize: 20 }}>🍎</Text>
             <Text style={styles.socialButtonText}>Continuar com Apple</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.signupContainer}>
-          <Text style={styles.signupText}>Não tem uma conta?</Text>
-          <TouchableOpacity onPress={() => router.push('/signup' as any)}>
-            <Text style={styles.signupLink}>Criar conta</Text>
+        <View style={styles.loginContainer}>
+          <Text style={styles.loginText}>Já tem uma conta?</Text>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={styles.loginLink}>Entrar</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
