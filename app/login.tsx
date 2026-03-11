@@ -3,11 +3,11 @@ import React, { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
@@ -194,13 +194,13 @@ export default function LoginScreen() {
           />
         </View>
 
-        <TouchableOpacity style={styles.forgotPassword}>
+        <Pressable  style={styles.forgotPassword}>
           <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
-        </TouchableOpacity>
+        </Pressable >
 
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+        <Pressable  style={styles.loginButton} onPress={handleLogin}>
           <Text style={styles.loginButtonText}>Entrar</Text>
-        </TouchableOpacity>
+        </Pressable >
 
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
@@ -209,22 +209,22 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.socialButtons}>
-          <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
+          <Pressable  style={styles.socialButton} onPress={handleGoogleLogin}>
             <Text style={{ fontSize: 20 }}>🔍</Text>
             <Text style={styles.socialButtonText}>Continuar com Google</Text>
-          </TouchableOpacity>
+          </Pressable >
 
-          <TouchableOpacity style={styles.socialButton} onPress={handleAppleLogin}>
+          <Pressable  style={styles.socialButton} onPress={handleAppleLogin}>
             <Text style={{ fontSize: 20 }}>🍎</Text>
             <Text style={styles.socialButtonText}>Continuar com Apple</Text>
-          </TouchableOpacity>
+          </Pressable >
         </View>
 
         <View style={styles.signupContainer}>
           <Text style={styles.signupText}>Não tem uma conta?</Text>
-          <TouchableOpacity onPress={() => router.push('/signup' as any)}>
+          <Pressable  onPress={() => router.push('/signup' as any)}>
             <Text style={styles.signupLink}>Criar conta</Text>
-          </TouchableOpacity>
+          </Pressable >
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

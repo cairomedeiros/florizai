@@ -1,13 +1,14 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
     KeyboardAvoidingView,
     Platform,
+    Pressable,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
-    TouchableOpacity,
     View,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -169,9 +170,9 @@ export default function OnboardingScreen() {
       style={styles.container}
     >
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
+        <Pressable  style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={20} color={colors.text} />
+        </Pressable >
         <Text style={styles.headerTitle}>🌸 Adicionar Planta</Text>
       </View>
 
@@ -181,23 +182,23 @@ export default function OnboardingScreen() {
         contentContainerStyle={{ paddingBottom: 40 }}
       >
         <View style={styles.photoSection}>
-          <TouchableOpacity
+          <Pressable 
             style={[
               styles.photoPlaceholder,
               hasPhoto && styles.photoPlaceholderWithImage,
             ]}
             onPress={handleAddPhoto}
           >
-            <Text style={styles.photoIcon}>{hasPhoto ? '🌱' : '📷'}</Text>
+            <Ionicons name={hasPhoto ? "leaf" : "camera"} size={64} color={colors.textSecondary} />
             <Text style={styles.photoText}>
               {hasPhoto ? 'Foto adicionada!' : 'Adicionar foto'}
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.addPhotoButton} onPress={handleAddPhoto}>
+          </Pressable >
+          <Pressable  style={styles.addPhotoButton} onPress={handleAddPhoto}>
             <Text style={styles.addPhotoButtonText}>
               {hasPhoto ? 'Trocar Foto' : 'Escolher Foto'}
             </Text>
-          </TouchableOpacity>
+          </Pressable >
         </View>
 
         <View style={styles.inputContainer}>
@@ -235,13 +236,13 @@ export default function OnboardingScreen() {
           </Text>
         </View>
 
-        <TouchableOpacity
+        <Pressable 
           style={[styles.saveButton, !name.trim() && styles.saveButtonDisabled]}
           onPress={handleSave}
           disabled={!name.trim()}
         >
           <Text style={styles.saveButtonText}>Adicionar Planta</Text>
-        </TouchableOpacity>
+        </Pressable >
       </ScrollView>
     </KeyboardAvoidingView>
   );

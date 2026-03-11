@@ -1,10 +1,11 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+    Pressable,
     ScrollView,
     StyleSheet,
     Text,
-    TouchableOpacity,
     View,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -244,25 +245,25 @@ export default function PhotoTimelineScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
+        <Pressable  style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={20} color={colors.text} />
+        </Pressable >
         <Text style={styles.headerTitle}>📸 Timeline de Evolução</Text>
-        <TouchableOpacity style={styles.addButton} onPress={handleAddPhoto}>
-          <Text style={styles.addButtonText}>+</Text>
-        </TouchableOpacity>
+        <Pressable  style={styles.addButton} onPress={handleAddPhoto}>
+          <Ionicons name="add" size={20} color="#ffffff" />
+        </Pressable >
       </View>
 
       <ScrollView style={styles.content}>
         {photos.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📸</Text>
+            <Ionicons name="camera-outline" size={64} color={colors.textSecondary} />
             <Text style={styles.emptyText}>
               Comece a documentar o crescimento da sua planta! Tire fotos ao longo do tempo e veja sua evolução.
             </Text>
-            <TouchableOpacity style={styles.emptyButton} onPress={handleAddPhoto}>
+            <Pressable  style={styles.emptyButton} onPress={handleAddPhoto}>
               <Text style={styles.emptyButtonText}>Adicionar Primeira Foto</Text>
-            </TouchableOpacity>
+            </Pressable >
           </View>
         ) : (
           <>

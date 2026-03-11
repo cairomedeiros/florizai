@@ -1,13 +1,14 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
     KeyboardAvoidingView,
     Platform,
+    Pressable,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
-    TouchableOpacity,
     View,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -166,9 +167,9 @@ export default function PlantChatScreen() {
       keyboardVerticalOffset={0}
     >
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
+        <Pressable  style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={20} color={colors.text} />
+        </Pressable >
         <Text style={styles.headerTitle}>💬 Chat com a Planta</Text>
       </View>
 
@@ -208,13 +209,13 @@ export default function PlantChatScreen() {
           returnKeyType="send"
           multiline
         />
-        <TouchableOpacity
+        <Pressable 
           style={styles.sendButton}
           onPress={handleSend}
           disabled={!input.trim()}
         >
-          <Text style={styles.sendButtonText}>➤</Text>
-        </TouchableOpacity>
+          <Ionicons name="send" size={20} color="#ffffff" />
+        </Pressable >
       </View>
     </KeyboardAvoidingView>
   );

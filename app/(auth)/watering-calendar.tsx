@@ -1,10 +1,11 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+    Pressable,
     ScrollView,
     StyleSheet,
     Text,
-    TouchableOpacity,
     View,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -346,20 +347,20 @@ export default function WateringCalendarScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
+        <Pressable  style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={20} color={colors.text} />
+        </Pressable >
         <Text style={styles.headerTitle}>💧 Calendário de Rega</Text>
       </View>
 
       <ScrollView style={styles.content}>
-        <TouchableOpacity 
+        <Pressable  
           style={styles.overviewToggle}
           onPress={() => setShowOverview(!showOverview)}
         >
           <Text style={styles.overviewToggleText}>📊 Visão Anual {new Date().getFullYear()}</Text>
           <Text style={styles.overviewToggleIcon}>{showOverview ? '▼' : '▶'}</Text>
-        </TouchableOpacity>
+        </Pressable >
 
         {showOverview && (
           <View style={styles.yearOverview}>
@@ -371,7 +372,7 @@ export default function WateringCalendarScreen() {
                   monthData.year === currentMonth.getFullYear();
                 
                 return (
-                  <TouchableOpacity
+                  <Pressable 
                     key={`${monthData.year}-${monthData.month}`}
                     style={[styles.monthChip, isCurrentMonth && styles.monthChipActive]}
                     onPress={() => {
@@ -383,7 +384,7 @@ export default function WateringCalendarScreen() {
                     <Text style={styles.monthChipName}>{monthData.name.substring(0, 3)}</Text>
                     <Text style={styles.monthChipCount}>{monthData.wateringCount}</Text>
                     <Text style={styles.monthChipLabel}>regas</Text>
-                  </TouchableOpacity>
+                  </Pressable >
                 );
               })}
             </View>
@@ -391,15 +392,15 @@ export default function WateringCalendarScreen() {
         )}
 
         <View style={styles.monthNavigator}>
-          <TouchableOpacity style={styles.navButton} onPress={() => changeMonth('prev')}>
-            <Text style={styles.navButtonText}>‹</Text>
-          </TouchableOpacity>
+          <Pressable  style={styles.navButton} onPress={() => changeMonth('prev')}>
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
+          </Pressable >
           <Text style={styles.monthText}>
             {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
           </Text>
-          <TouchableOpacity style={styles.navButton} onPress={() => changeMonth('next')}>
-            <Text style={styles.navButtonText}>›</Text>
-          </TouchableOpacity>
+          <Pressable  style={styles.navButton} onPress={() => changeMonth('next')}>
+            <Ionicons name="chevron-forward" size={24} color={colors.text} />
+          </Pressable >
         </View>
 
         <View style={styles.calendar}>
@@ -423,7 +424,7 @@ export default function WateringCalendarScreen() {
 
               return (
                 <View key={day} style={styles.dayCell}>
-                  <TouchableOpacity
+                  <Pressable 
                     style={[
                       styles.dayButton,
                       watered && styles.dayButtonWatered,
@@ -434,7 +435,7 @@ export default function WateringCalendarScreen() {
                     <Text style={[styles.dayText, watered && styles.dayTextWatered]}>
                       {day}
                     </Text>
-                  </TouchableOpacity>
+                  </Pressable >
                 </View>
               );
             })}
