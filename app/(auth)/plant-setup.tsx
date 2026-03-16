@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 
-export default function OnboardingScreen() {
+export default function PlantSetupScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const [name, setName] = useState('');

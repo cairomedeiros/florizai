@@ -40,7 +40,7 @@ export default function HomeScreen() {
   }).length;
 
   const handleAddPlant = () => {
-    router.push('/(auth)/onboarding' as any);
+    router.push('/(auth)/plant-setup' as any);
   };
 
   const handlePlantPress = (plantId: string) => {
