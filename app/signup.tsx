@@ -1,19 +1,22 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
+import { Skeleton } from '../components/Skeleton';
+import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 
 export default function SignUpScreen() {
   const { colors } = useTheme();
+  const { isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,20 +27,18 @@ export default function SignUpScreen() {
       console.log('Passwords do not match');
       return;
     }
+
     // TODO: Implement Supabase sign up
-    // const { data, error } = await supabase.auth.signUp({ email, password });
     router.replace('/(auth)/home');
   };
 
   const handleGoogleSignUp = async () => {
     // TODO: Implement Supabase Google OAuth
-    // const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
     console.log('Google sign up');
   };
 
   const handleAppleSignUp = async () => {
     // TODO: Implement Supabase Apple OAuth
-    // const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'apple' });
     console.log('Apple sign up');
   };
 
@@ -169,85 +170,128 @@ export default function SignUpScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>🌸 FlorizAI</Text>
-          <Text style={styles.subtitle}>Crie sua conta</Text>
-        </View>
+        {isAuthLoading ? (
+          <>
+            <View style={styles.header}>
+              <Skeleton width={220} height={40} borderRadius={12} />
+              <Skeleton width={160} height={18} style={{ marginTop: 8 }} />
+            </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="seu@email.com"
-            placeholderTextColor={colors.textSecondary}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-          />
-        </View>
+            <View style={styles.inputContainer}>
+              <Skeleton width={70} height={16} style={{ marginBottom: 8 }} />
+              <Skeleton height={54} borderRadius={12} />
+            </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Senha</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Mínimo 8 caracteres"
-            placeholderTextColor={colors.textSecondary}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="password-new"
-          />
-        </View>
+            <View style={styles.inputContainer}>
+              <Skeleton width={70} height={16} style={{ marginBottom: 8 }} />
+              <Skeleton height={54} borderRadius={12} />
+            </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Confirmar Senha</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Digite a senha novamente"
-            placeholderTextColor={colors.textSecondary}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            autoComplete="password-new"
-          />
-        </View>
+            <View style={styles.inputContainer}>
+              <Skeleton width={110} height={16} style={{ marginBottom: 8 }} />
+              <Skeleton height={54} borderRadius={12} />
+            </View>
 
-        <Text style={styles.terms}>
-          Ao criar uma conta, você concorda com nossos{' '}
-          <Text style={styles.termsLink}>Termos de Uso</Text> e{' '}
-          <Text style={styles.termsLink}>Política de Privacidade</Text>
-        </Text>
+            <Skeleton width="90%" height={36} style={{ marginBottom: 16, alignSelf: 'center' }} />
+            <Skeleton height={54} borderRadius={12} style={{ marginBottom: 24 }} />
 
-        <Pressable  style={styles.signupButton} onPress={handleSignUp}>
-          <Text style={styles.signupButtonText}>Criar Conta</Text>
-        </Pressable >
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Skeleton width={130} height={14} style={{ marginHorizontal: 16 }} />
+              <View style={styles.dividerLine} />
+            </View>
 
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>ou continue com</Text>
-          <View style={styles.dividerLine} />
-        </View>
+            <View style={styles.socialButtons}>
+              <Skeleton height={54} borderRadius={12} />
+              <Skeleton height={54} borderRadius={12} />
+            </View>
 
-        <View style={styles.socialButtons}>
-          <Pressable  style={styles.socialButton} onPress={handleGoogleSignUp}>
-            <Text style={{ fontSize: 20 }}>🔍</Text>
-            <Text style={styles.socialButtonText}>Continuar com Google</Text>
-          </Pressable >
+            <View style={styles.loginContainer}>
+              <Skeleton width={120} height={14} />
+              <Skeleton width={45} height={14} style={{ marginLeft: 8 }} />
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.header}>
+              <Text style={styles.title}>FlorizAI</Text>
+              <Text style={styles.subtitle}>Crie sua conta</Text>
+            </View>
 
-          <Pressable  style={styles.socialButton} onPress={handleAppleSignUp}>
-            <Text style={{ fontSize: 20 }}>🍎</Text>
-            <Text style={styles.socialButtonText}>Continuar com Apple</Text>
-          </Pressable >
-        </View>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="seu@email.com"
+                placeholderTextColor={colors.textSecondary}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+              />
+            </View>
 
-        <View style={styles.loginContainer}>
-          <Text style={styles.loginText}>Já tem uma conta?</Text>
-          <Pressable  onPress={() => router.back()}>
-            <Text style={styles.loginLink}>Entrar</Text>
-          </Pressable >
-        </View>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Senha</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Minimo 8 caracteres"
+                placeholderTextColor={colors.textSecondary}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoComplete="password-new"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Confirmar Senha</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Digite a senha novamente"
+                placeholderTextColor={colors.textSecondary}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry
+                autoComplete="password-new"
+              />
+            </View>
+
+            <Text style={styles.terms}>
+              Ao criar uma conta, voce concorda com nossos{' '}
+              <Text style={styles.termsLink}>Termos de Uso</Text> e{' '}
+              <Text style={styles.termsLink}>Politica de Privacidade</Text>
+            </Text>
+
+            <Pressable style={styles.signupButton} onPress={handleSignUp}>
+              <Text style={styles.signupButtonText}>Criar Conta</Text>
+            </Pressable>
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>ou continue com</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <View style={styles.socialButtons}>
+              <Pressable style={styles.socialButton} onPress={handleGoogleSignUp}>
+                <Text style={styles.socialButtonText}>Continuar com Google</Text>
+              </Pressable>
+
+              <Pressable style={styles.socialButton} onPress={handleAppleSignUp}>
+                <Text style={styles.socialButtonText}>Continuar com Apple</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.loginContainer}>
+              <Text style={styles.loginText}>Ja tem uma conta?</Text>
+              <Pressable onPress={() => router.back()}>
+                <Text style={styles.loginLink}>Entrar</Text>
+              </Pressable>
+            </View>
+          </>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );

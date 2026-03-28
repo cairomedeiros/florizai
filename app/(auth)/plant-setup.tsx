@@ -1,24 +1,31 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
+import { Skeleton } from '../../components/Skeleton';
 import { useTheme } from '../../contexts/ThemeContext';
 
 export default function PlantSetupScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [hasPhoto, setHasPhoto] = useState(false);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setIsLoading(false), 600);
+    return () => clearTimeout(timeout);
+  }, []);
 
   const handleAddPhoto = () => {
     // TODO: Implement camera/gallery picker
@@ -60,10 +67,6 @@ export default function PlantSetupScreen() {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    backButtonText: {
-      fontSize: 20,
-      color: colors.text,
-    },
     headerTitle: {
       flex: 1,
       fontSize: 20,
@@ -93,10 +96,6 @@ export default function PlantSetupScreen() {
     photoPlaceholderWithImage: {
       borderStyle: 'solid',
       borderColor: colors.primary,
-    },
-    photoIcon: {
-      fontSize: 48,
-      marginBottom: 8,
     },
     photoText: {
       fontSize: 14,
@@ -164,16 +163,51 @@ export default function PlantSetupScreen() {
     },
   });
 
+  if (isLoading) {
+    return (
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <View style={styles.header}>
+          <Skeleton width={36} height={36} borderRadius={18} />
+          <Skeleton width={170} height={24} borderRadius={10} />
+        </View>
+
+        <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }}>
+          <View style={styles.photoSection}>
+            <Skeleton width={160} height={160} borderRadius={80} />
+            <Skeleton width={140} height={42} borderRadius={24} style={{ marginTop: 8 }} />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Skeleton width={110} height={16} style={{ marginBottom: 8 }} />
+            <Skeleton height={54} borderRadius={12} />
+            <Skeleton width={220} height={12} style={{ marginTop: 8 }} />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Skeleton width={140} height={16} style={{ marginBottom: 8 }} />
+            <Skeleton height={110} borderRadius={12} />
+            <Skeleton width={260} height={12} style={{ marginTop: 8 }} />
+          </View>
+
+          <Skeleton height={54} borderRadius={12} />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
       <View style={styles.header}>
-        <Pressable  style={styles.backButton} onPress={() => router.back()}>
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color={colors.text} />
-        </Pressable >
-        <Text style={styles.headerTitle}>🌸 Adicionar Planta</Text>
+        </Pressable>
+        <Text style={styles.headerTitle}>Adicionar Planta</Text>
       </View>
 
       <ScrollView
@@ -182,23 +216,23 @@ export default function PlantSetupScreen() {
         contentContainerStyle={{ paddingBottom: 40 }}
       >
         <View style={styles.photoSection}>
-          <Pressable 
+          <Pressable
             style={[
               styles.photoPlaceholder,
               hasPhoto && styles.photoPlaceholderWithImage,
             ]}
             onPress={handleAddPhoto}
           >
-            <Ionicons name={hasPhoto ? "leaf" : "camera"} size={64} color={colors.textSecondary} />
+            <Ionicons name={hasPhoto ? 'leaf' : 'camera'} size={64} color={colors.textSecondary} />
             <Text style={styles.photoText}>
               {hasPhoto ? 'Foto adicionada!' : 'Adicionar foto'}
             </Text>
-          </Pressable >
-          <Pressable  style={styles.addPhotoButton} onPress={handleAddPhoto}>
+          </Pressable>
+          <Pressable style={styles.addPhotoButton} onPress={handleAddPhoto}>
             <Text style={styles.addPhotoButtonText}>
               {hasPhoto ? 'Trocar Foto' : 'Escolher Foto'}
             </Text>
-          </Pressable >
+          </Pressable>
         </View>
 
         <View style={styles.inputContainer}>
@@ -213,18 +247,16 @@ export default function PlantSetupScreen() {
             onChangeText={setName}
             autoCapitalize="words"
           />
-          <Text style={styles.hint}>
-            Dê um nome carinhoso para sua plantinha 🌿
-          </Text>
+          <Text style={styles.hint}>De um nome carinhoso para sua plantinha</Text>
         </View>
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>
-            Descrição <Text style={styles.labelOptional}>(opcional)</Text>
+            Descricao <Text style={styles.labelOptional}>(opcional)</Text>
           </Text>
           <TextInput
             style={[styles.input, styles.textArea]}
-            placeholder="Ex: Suculenta pequena que fica perto da janela. Gosta de sol e pouca água."
+            placeholder="Ex: Suculenta pequena perto da janela."
             placeholderTextColor={colors.textSecondary}
             value={description}
             onChangeText={setDescription}
@@ -232,17 +264,17 @@ export default function PlantSetupScreen() {
             numberOfLines={4}
           />
           <Text style={styles.hint}>
-            Adicione informações sobre a espécie, localização ou cuidados especiais
+            Adicione informacoes sobre especie, localizacao ou cuidados especiais
           </Text>
         </View>
 
-        <Pressable 
+        <Pressable
           style={[styles.saveButton, !name.trim() && styles.saveButtonDisabled]}
           onPress={handleSave}
           disabled={!name.trim()}
         >
           <Text style={styles.saveButtonText}>Adicionar Planta</Text>
-        </Pressable >
+        </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );

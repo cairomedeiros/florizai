@@ -1,44 +1,47 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import {
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
-} from 'react-native';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Skeleton } from '../../components/Skeleton';
 import { useTheme } from '../../contexts/ThemeContext';
 
 type Photo = {
   id: string;
   date: Date;
   note: string;
-  // TODO: Add actual image URI when implementing camera functionality
 };
 
 export default function PhotoTimelineScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { id } = useLocalSearchParams();
 
-  const [photos, setPhotos] = useState<Photo[]>([
-    {
-      id: '1',
-      date: new Date('2026-03-05'),
-      note: 'Primeira foto! Acabei de ganhar essa plantinha 🌱',
-    },
-    {
-      id: '2',
-      date: new Date('2026-03-08'),
-      note: 'Notei um novo broto crescendo! 😍',
-    },
-    {
-      id: '3',
-      date: new Date('2026-03-11'),
-      note: 'Está crescendo muito rápido!',
-    },
-  ]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setPhotos([
+        {
+          id: '1',
+          date: new Date('2026-03-05'),
+          note: 'Primeira foto. Acabei de ganhar essa plantinha.',
+        },
+        {
+          id: '2',
+          date: new Date('2026-03-08'),
+          note: 'Notei um novo broto crescendo.',
+        },
+        {
+          id: '3',
+          date: new Date('2026-03-11'),
+          note: 'Esta crescendo rapido.',
+        },
+      ]);
+      setIsLoading(false);
+    }, 650);
+
+    return () => clearTimeout(timeout);
+  }, []);
 
   const handleAddPhoto = () => {
     // TODO: Implement camera/gallery picker
@@ -52,13 +55,21 @@ export default function PhotoTimelineScreen() {
 
     if (diffDays === 0) return 'Hoje';
     if (diffDays === 1) return 'Ontem';
-    if (diffDays < 7) return `${diffDays} dias atrás`;
-    
+    if (diffDays < 7) return `${diffDays} dias atras`;
+
     return date.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: 'short',
-      year: 'numeric'
+      year: 'numeric',
     });
+  };
+
+  const getDaysTracking = () => {
+    if (photos.length === 0) return 0;
+    const firstPhoto = photos[photos.length - 1];
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - firstPhoto.date.getTime());
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
   };
 
   const styles = StyleSheet.create({
@@ -85,10 +96,6 @@ export default function PhotoTimelineScreen() {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    backButtonText: {
-      fontSize: 20,
-      color: colors.text,
-    },
     headerTitle: {
       flex: 1,
       fontSize: 20,
@@ -103,11 +110,6 @@ export default function PhotoTimelineScreen() {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    addButtonText: {
-      color: '#ffffff',
-      fontSize: 20,
-      fontWeight: 'bold',
-    },
     content: {
       flex: 1,
       padding: 20,
@@ -117,10 +119,6 @@ export default function PhotoTimelineScreen() {
       justifyContent: 'center',
       alignItems: 'center',
       paddingHorizontal: 40,
-    },
-    emptyIcon: {
-      fontSize: 64,
-      marginBottom: 16,
     },
     emptyText: {
       fontSize: 18,
@@ -138,9 +136,6 @@ export default function PhotoTimelineScreen() {
       color: '#ffffff',
       fontSize: 16,
       fontWeight: '600',
-    },
-    timeline: {
-      position: 'relative',
     },
     timelineItem: {
       flexDirection: 'row',
@@ -181,10 +176,6 @@ export default function PhotoTimelineScreen() {
       justifyContent: 'center',
       borderWidth: 1,
       borderColor: colors.border,
-    },
-    photoPlaceholderIcon: {
-      fontSize: 48,
-      marginBottom: 8,
     },
     photoPlaceholderText: {
       fontSize: 14,
@@ -234,24 +225,61 @@ export default function PhotoTimelineScreen() {
     },
   });
 
-  const getDaysTracking = () => {
-    if (photos.length === 0) return 0;
-    const firstPhoto = photos[photos.length - 1];
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - firstPhoto.date.getTime());
-    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  };
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Skeleton width={36} height={36} borderRadius={18} />
+          <Skeleton width={190} height={24} borderRadius={10} style={{ flex: 1 }} />
+          <Skeleton width={36} height={36} borderRadius={18} />
+        </View>
+
+        <ScrollView style={styles.content}>
+          <View style={styles.statsContainer}>
+            <Skeleton width={90} height={16} />
+            <View style={[styles.statsRow, { marginTop: 14 }]}>
+              <View style={styles.statItem}>
+                <Skeleton width={26} height={24} />
+                <Skeleton width={45} height={12} style={{ marginTop: 6 }} />
+              </View>
+              <View style={styles.statItem}>
+                <Skeleton width={26} height={24} />
+                <Skeleton width={110} height={12} style={{ marginTop: 6 }} />
+              </View>
+            </View>
+          </View>
+
+          {Array.from({ length: 3 }).map((_, index) => (
+            <View key={index} style={styles.timelineItem}>
+              <View style={styles.timelineLine} />
+              <Skeleton
+                width={16}
+                height={16}
+                borderRadius={8}
+                style={{ position: 'absolute', left: 8, top: 8 }}
+              />
+              <View style={styles.photoCard}>
+                <Skeleton height={200} borderRadius={8} style={{ marginBottom: 12 }} />
+                <Skeleton width={90} height={12} style={{ marginBottom: 8 }} />
+                <Skeleton width="95%" height={14} />
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Pressable  style={styles.backButton} onPress={() => router.back()}>
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color={colors.text} />
-        </Pressable >
-        <Text style={styles.headerTitle}>📸 Timeline de Evolução</Text>
-        <Pressable  style={styles.addButton} onPress={handleAddPhoto}>
+        </Pressable>
+        <Text style={styles.headerTitle}>Timeline de Evolucao</Text>
+        <Pressable style={styles.addButton} onPress={handleAddPhoto}>
           <Ionicons name="add" size={20} color="#ffffff" />
-        </Pressable >
+        </Pressable>
       </View>
 
       <ScrollView style={styles.content}>
@@ -259,11 +287,11 @@ export default function PhotoTimelineScreen() {
           <View style={styles.emptyContainer}>
             <Ionicons name="camera-outline" size={64} color={colors.textSecondary} />
             <Text style={styles.emptyText}>
-              Comece a documentar o crescimento da sua planta! Tire fotos ao longo do tempo e veja sua evolução.
+              Comece a documentar o crescimento da sua planta.
             </Text>
-            <Pressable  style={styles.emptyButton} onPress={handleAddPhoto}>
-              <Text style={styles.emptyButtonText}>Adicionar Primeira Foto</Text>
-            </Pressable >
+            <Pressable style={styles.emptyButton} onPress={handleAddPhoto}>
+              <Text style={styles.emptyButtonText}>Adicionar primeira foto</Text>
+            </Pressable>
           </View>
         ) : (
           <>
@@ -281,26 +309,19 @@ export default function PhotoTimelineScreen() {
               </View>
             </View>
 
-            <View style={styles.timeline}>
-              {photos.map((photo, index) => (
-                <View key={photo.id}>
-                  <View style={styles.timelineItem}>
-                    <View style={styles.timelineLine} />
-                    <View style={styles.timelineDot} />
-                    <View style={styles.photoCard}>
-                      <View style={styles.photoPlaceholder}>
-                        <Text style={styles.photoPlaceholderIcon}>🌱</Text>
-                        <Text style={styles.photoPlaceholderText}>
-                          Foto será exibida aqui
-                        </Text>
-                      </View>
-                      <Text style={styles.photoDate}>{formatDate(photo.date)}</Text>
-                      <Text style={styles.photoNote}>{photo.note}</Text>
-                    </View>
+            {photos.map((photo) => (
+              <View key={photo.id} style={styles.timelineItem}>
+                <View style={styles.timelineLine} />
+                <View style={styles.timelineDot} />
+                <View style={styles.photoCard}>
+                  <View style={styles.photoPlaceholder}>
+                    <Text style={styles.photoPlaceholderText}>Foto sera exibida aqui</Text>
                   </View>
+                  <Text style={styles.photoDate}>{formatDate(photo.date)}</Text>
+                  <Text style={styles.photoNote}>{photo.note}</Text>
                 </View>
-              ))}
-            </View>
+              </View>
+            ))}
           </>
         )}
       </ScrollView>

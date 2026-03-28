@@ -1,16 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
+import { Skeleton } from '../../components/Skeleton';
 import { useTheme } from '../../contexts/ThemeContext';
 
 type Message = {
@@ -23,17 +24,26 @@ type Message = {
 export default function PlantChatScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { id } = useLocalSearchParams();
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: 'Olá! 🌸 Como posso ajudar você a cuidar melhor da sua planta hoje?',
-      isBot: true,
-      timestamp: new Date(),
-    },
-  ]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setMessages([
+        {
+          id: '1',
+          text: 'Ola! Como posso ajudar voce a cuidar melhor da sua planta hoje?',
+          isBot: true,
+          timestamp: new Date(),
+        },
+      ]);
+      setIsLoading(false);
+    }, 650);
+
+    return () => clearTimeout(timeout);
+  }, []);
 
   const addMessage = (text: string, isBot: boolean) => {
     const newMessage: Message = {
@@ -49,15 +59,11 @@ export default function PlantChatScreen() {
     if (!input.trim()) return;
 
     addMessage(input, false);
-    const userInput = input.trim();
     setInput('');
 
     // TODO: Implement AI response logic with Supabase/OpenAI
     setTimeout(() => {
-      addMessage(
-        'Entendo sua dúvida! Vou pesquisar as melhores práticas para o cuidado da sua planta. 🌱',
-        true
-      );
+      addMessage('Entendo sua duvida. Vou pesquisar boas praticas para essa planta.', true);
     }, 1000);
   };
 
@@ -84,10 +90,6 @@ export default function PlantChatScreen() {
       backgroundColor: colors.background,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    backButtonText: {
-      fontSize: 20,
-      color: colors.text,
     },
     headerTitle: {
       flex: 1,
@@ -153,12 +155,38 @@ export default function PlantChatScreen() {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    sendButtonText: {
-      color: '#ffffff',
-      fontSize: 20,
-      fontWeight: 'bold',
-    },
   });
+
+  if (isLoading) {
+    return (
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+        keyboardVerticalOffset={0}
+      >
+        <View style={styles.header}>
+          <Skeleton width={36} height={36} borderRadius={18} />
+          <Skeleton width={170} height={24} borderRadius={10} />
+        </View>
+
+        <View style={styles.messagesContainer}>
+          <Skeleton width="78%" height={64} borderRadius={16} style={{ marginBottom: 12 }} />
+          <Skeleton
+            width="62%"
+            height={56}
+            borderRadius={16}
+            style={{ marginBottom: 12, alignSelf: 'flex-end' }}
+          />
+          <Skeleton width="75%" height={72} borderRadius={16} style={{ marginBottom: 12 }} />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Skeleton height={48} borderRadius={24} style={{ flex: 1 }} />
+          <Skeleton width={48} height={48} borderRadius={24} />
+        </View>
+      </KeyboardAvoidingView>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -167,10 +195,10 @@ export default function PlantChatScreen() {
       keyboardVerticalOffset={0}
     >
       <View style={styles.header}>
-        <Pressable  style={styles.backButton} onPress={() => router.back()}>
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color={colors.text} />
-        </Pressable >
-        <Text style={styles.headerTitle}>💬 Chat com a Planta</Text>
+        </Pressable>
+        <Text style={styles.headerTitle}>Chat com a Planta</Text>
       </View>
 
       <ScrollView
@@ -201,7 +229,7 @@ export default function PlantChatScreen() {
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Faça uma pergunta..."
+          placeholder="Faca uma pergunta..."
           placeholderTextColor={colors.textSecondary}
           value={input}
           onChangeText={setInput}
@@ -209,13 +237,13 @@ export default function PlantChatScreen() {
           returnKeyType="send"
           multiline
         />
-        <Pressable 
+        <Pressable
           style={styles.sendButton}
           onPress={handleSend}
           disabled={!input.trim()}
         >
           <Ionicons name="send" size={20} color="#ffffff" />
-        </Pressable >
+        </Pressable>
       </View>
     </KeyboardAvoidingView>
   );

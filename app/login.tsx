@@ -10,29 +10,29 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { Skeleton } from '../components/Skeleton';
+import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 
 export default function LoginScreen() {
   const { colors } = useTheme();
+  const { isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = async () => {
     // TODO: Implement Supabase authentication
-    // const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     router.replace('/(auth)/home');
   };
 
   const handleGoogleLogin = async () => {
     // TODO: Implement Supabase Google OAuth
-    // const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
     console.log('Google login');
   };
 
   const handleAppleLogin = async () => {
     // TODO: Implement Supabase Apple OAuth
-    // const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'apple' });
     console.log('Apple login');
   };
 
@@ -162,70 +162,115 @@ export default function LoginScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>🌸 FlorizAI</Text>
-          <Text style={styles.subtitle}>Bem-vindo de volta!</Text>
-        </View>
+        {isAuthLoading ? (
+          <>
+            <View style={styles.header}>
+              <Skeleton width={220} height={40} borderRadius={12} />
+              <Skeleton width={180} height={18} style={{ marginTop: 8 }} />
+            </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="seu@email.com"
-            placeholderTextColor={colors.textSecondary}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-          />
-        </View>
+            <View style={styles.inputContainer}>
+              <Skeleton width={70} height={16} style={{ marginBottom: 8 }} />
+              <Skeleton height={54} borderRadius={12} />
+            </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Senha</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="••••••••"
-            placeholderTextColor={colors.textSecondary}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="password"
-          />
-        </View>
+            <View style={styles.inputContainer}>
+              <Skeleton width={70} height={16} style={{ marginBottom: 8 }} />
+              <Skeleton height={54} borderRadius={12} />
+            </View>
 
-        <Pressable  style={styles.forgotPassword}>
-          <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
-        </Pressable >
+            <View style={styles.forgotPassword}>
+              <Skeleton width={120} height={16} />
+            </View>
 
-        <Pressable  style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginButtonText}>Entrar</Text>
-        </Pressable >
+            <Skeleton
+              height={54}
+              borderRadius={12}
+              style={{ marginBottom: 24 }}
+            />
 
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>ou continue com</Text>
-          <View style={styles.dividerLine} />
-        </View>
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Skeleton width={130} height={14} style={{ marginHorizontal: 16 }} />
+              <View style={styles.dividerLine} />
+            </View>
 
-        <View style={styles.socialButtons}>
-          <Pressable  style={styles.socialButton} onPress={handleGoogleLogin}>
-            <Text style={{ fontSize: 20 }}>🔍</Text>
-            <Text style={styles.socialButtonText}>Continuar com Google</Text>
-          </Pressable >
+            <View style={styles.socialButtons}>
+              <Skeleton height={54} borderRadius={12} />
+              <Skeleton height={54} borderRadius={12} />
+            </View>
 
-          <Pressable  style={styles.socialButton} onPress={handleAppleLogin}>
-            <Text style={{ fontSize: 20 }}>🍎</Text>
-            <Text style={styles.socialButtonText}>Continuar com Apple</Text>
-          </Pressable >
-        </View>
+            <View style={styles.signupContainer}>
+              <Skeleton width={130} height={14} />
+              <Skeleton width={90} height={14} style={{ marginLeft: 8 }} />
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.header}>
+              <Text style={styles.title}>FlorizAI</Text>
+              <Text style={styles.subtitle}>Bem-vindo de volta!</Text>
+            </View>
 
-        <View style={styles.signupContainer}>
-          <Text style={styles.signupText}>Não tem uma conta?</Text>
-          <Pressable  onPress={() => router.push('/signup' as any)}>
-            <Text style={styles.signupLink}>Criar conta</Text>
-          </Pressable >
-        </View>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="seu@email.com"
+                placeholderTextColor={colors.textSecondary}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Senha</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="********"
+                placeholderTextColor={colors.textSecondary}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoComplete="password"
+              />
+            </View>
+
+            <Pressable style={styles.forgotPassword}>
+              <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
+            </Pressable>
+
+            <Pressable style={styles.loginButton} onPress={handleLogin}>
+              <Text style={styles.loginButtonText}>Entrar</Text>
+            </Pressable>
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>ou continue com</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <View style={styles.socialButtons}>
+              <Pressable style={styles.socialButton} onPress={handleGoogleLogin}>
+                <Text style={styles.socialButtonText}>Continuar com Google</Text>
+              </Pressable>
+
+              <Pressable style={styles.socialButton} onPress={handleAppleLogin}>
+                <Text style={styles.socialButtonText}>Continuar com Apple</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.signupContainer}>
+              <Text style={styles.signupText}>Nao tem uma conta?</Text>
+              <Pressable onPress={() => router.push('/signup' as any)}>
+                <Text style={styles.signupLink}>Criar conta</Text>
+              </Pressable>
+            </View>
+          </>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );

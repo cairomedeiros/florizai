@@ -1,13 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import {
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Skeleton } from '../../components/Skeleton';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -21,15 +16,48 @@ type Plant = {
 };
 
 export default function HomeScreen() {
-  const { signOut } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const { colors, isDark, setTheme } = useTheme();
   const router = useRouter();
 
-  // TODO: Replace with real data from database
+  const [isLoading, setIsLoading] = useState(true);
   const [plants, setPlants] = useState<Plant[]>([]);
-  const [username] = useState('Usuário'); // TODO: Get from auth context
+  const [username, setUsername] = useState('Usuario');
 
-  const plantsToWaterToday = plants.filter(plant => {
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadDashboard = async () => {
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 700));
+
+        if (!isMounted) return;
+
+        // TODO: Replace with real data from database
+        setPlants([]);
+        setUsername(user?.name ?? 'Usuario');
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    if (isAuthLoading) {
+      setIsLoading(true);
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    loadDashboard();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthLoading, user?.name]);
+
+  const plantsToWaterToday = plants.filter((plant) => {
     const today = new Date();
     const nextWater = new Date(plant.nextWatering);
     return (
@@ -58,8 +86,8 @@ export default function HomeScreen() {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) return 'Regar hoje';
-    if (diffDays === 1) return 'Amanhã';
-    if (diffDays < 0) return 'Atrasada!';
+    if (diffDays === 1) return 'Amanha';
+    if (diffDays < 0) return 'Atrasada';
     return `Em ${diffDays} dias`;
   };
 
@@ -131,10 +159,6 @@ export default function HomeScreen() {
       marginTop: 2,
       textAlign: 'center',
     },
-    content: {
-      flex: 1,
-      paddingHorizontal: 20,
-    },
     emptyContainer: {
       flex: 1,
       justifyContent: 'center',
@@ -176,6 +200,7 @@ export default function HomeScreen() {
     },
     plantGrid: {
       paddingTop: 16,
+      paddingHorizontal: 20,
       paddingBottom: 100,
     },
     plantCard: {
@@ -234,15 +259,27 @@ export default function HomeScreen() {
       shadowRadius: 8,
       elevation: 8,
     },
+    skeletonGridRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 12,
+    },
   });
 
   const renderPlantCard = ({ item, index }: { item: Plant; index: number }) => (
     <Pressable
-      style={[styles.plantCard, { marginRight: index % 2 === 0 ? 6 : 0, marginLeft: index % 2 === 1 ? 6 : 0 }]}
+      style={[
+        styles.plantCard,
+        {
+          flex: 1,
+          marginRight: index % 2 === 0 ? 6 : 0,
+          marginLeft: index % 2 === 1 ? 6 : 0,
+        },
+      ]}
       onPress={() => handlePlantPress(item.id)}
     >
       <View style={styles.plantImage}>
-        <Text style={styles.plantEmoji}>🌿</Text>
+        <Text style={styles.plantEmoji}>Planta</Text>
       </View>
       <Text style={styles.plantName}>{item.name}</Text>
       <View style={styles.plantWatering}>
@@ -252,13 +289,75 @@ export default function HomeScreen() {
     </Pressable>
   );
 
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <View style={styles.headerLeft}>
+              <Skeleton width={200} height={28} borderRadius={10} />
+              <Skeleton width={180} height={16} style={{ marginTop: 8 }} />
+            </View>
+            <Skeleton width={36} height={36} borderRadius={18} />
+          </View>
+        </View>
+
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Skeleton width={24} height={24} borderRadius={6} />
+            <Skeleton width={30} height={22} style={{ marginTop: 8 }} />
+            <Skeleton width={55} height={12} style={{ marginTop: 6 }} />
+          </View>
+          <View style={styles.statCard}>
+            <Skeleton width={24} height={24} borderRadius={6} />
+            <Skeleton width={30} height={22} style={{ marginTop: 8 }} />
+            <Skeleton width={70} height={12} style={{ marginTop: 6 }} />
+          </View>
+        </View>
+
+        <View style={styles.plantGrid}>
+          <View style={styles.skeletonGridRow}>
+            <View style={[styles.plantCard, { flex: 1, marginBottom: 0 }]}>
+              <Skeleton height={120} borderRadius={12} style={{ marginBottom: 12 }} />
+              <Skeleton width={100} height={16} />
+              <Skeleton width={90} height={13} style={{ marginTop: 8 }} />
+            </View>
+            <View style={[styles.plantCard, { flex: 1, marginBottom: 0 }]}>
+              <Skeleton height={120} borderRadius={12} style={{ marginBottom: 12 }} />
+              <Skeleton width={100} height={16} />
+              <Skeleton width={90} height={13} style={{ marginTop: 8 }} />
+            </View>
+          </View>
+          <View style={styles.skeletonGridRow}>
+            <View style={[styles.plantCard, { flex: 1, marginBottom: 0 }]}>
+              <Skeleton height={120} borderRadius={12} style={{ marginBottom: 12 }} />
+              <Skeleton width={100} height={16} />
+              <Skeleton width={90} height={13} style={{ marginTop: 8 }} />
+            </View>
+            <View style={[styles.plantCard, { flex: 1, marginBottom: 0 }]}>
+              <Skeleton height={120} borderRadius={12} style={{ marginBottom: 12 }} />
+              <Skeleton width={100} height={16} />
+              <Skeleton width={90} height={13} style={{ marginTop: 8 }} />
+            </View>
+          </View>
+        </View>
+
+        <Skeleton
+          width={56}
+          height={56}
+          borderRadius={28}
+          style={{ position: 'absolute', bottom: 24, right: 24 }}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View style={styles.headerLeft}>
-            <Text style={styles.greeting}>Olá, {username} 👋</Text>
+            <Text style={styles.greeting}>Ola, {username}</Text>
             <Text style={styles.headerSubtitle}>Cuide bem das suas plantinhas</Text>
           </View>
           <Pressable style={styles.themeButton} onPress={toggleTheme}>
@@ -267,27 +366,25 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Stats Row */}
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>🌱</Text>
+          <Text style={styles.statNumber}>P</Text>
           <Text style={styles.statNumber}>{plants.length}</Text>
           <Text style={styles.statLabel}>plantas</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>💧</Text>
+          <Text style={styles.statNumber}>R</Text>
           <Text style={styles.statNumber}>{plantsToWaterToday}</Text>
           <Text style={styles.statLabel}>p/ regar hoje</Text>
         </View>
       </View>
 
-      {/* Content */}
       {plants.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>🪴</Text>
-          <Text style={styles.emptyTitle}>Seu jardim está vazio</Text>
+          <Text style={styles.emptyIcon}>Jardim</Text>
+          <Text style={styles.emptyTitle}>Seu jardim esta vazio</Text>
           <Text style={styles.emptySubtitle}>
-            Adicione sua primeira planta e comece a cuidar dela!
+            Adicione sua primeira planta e comece a cuidar dela.
           </Text>
           <Pressable style={styles.emptyCTA} onPress={handleAddPlant}>
             <Ionicons name="add" size={24} color="#ffffff" />
@@ -306,7 +403,6 @@ export default function HomeScreen() {
         />
       )}
 
-      {/* FAB */}
       {plants.length > 0 && (
         <Pressable style={styles.fab} onPress={handleAddPlant}>
           <Ionicons name="add" size={28} color="#ffffff" />
