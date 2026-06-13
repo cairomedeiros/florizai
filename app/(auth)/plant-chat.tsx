@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -11,6 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Skeleton } from '../../components/Skeleton';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -24,6 +26,7 @@ type Message = {
 export default function PlantChatScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [isLoading, setIsLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -55,15 +58,15 @@ export default function PlantChatScreen() {
     setMessages((prev) => [...prev, newMessage]);
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
-
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     addMessage(input, false);
     setInput('');
 
     // TODO: Implement AI response logic with Supabase/OpenAI
     setTimeout(() => {
-      addMessage('Entendo sua duvida. Vou pesquisar boas praticas para essa planta.', true);
+      addMessage('Entendo sua dúvida. Vou pesquisar boas práticas para essa planta.', true);
     }, 1000);
   };
 
@@ -130,6 +133,7 @@ export default function PlantChatScreen() {
     inputContainer: {
       flexDirection: 'row',
       padding: 16,
+      paddingBottom: 16 + insets.bottom,
       borderTopWidth: 1,
       borderTopColor: colors.border,
       backgroundColor: colors.surface,

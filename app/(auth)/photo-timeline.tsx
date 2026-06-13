@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Skeleton } from '../../components/Skeleton';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -14,6 +15,7 @@ type Photo = {
 export default function PhotoTimelineScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [isLoading, setIsLoading] = useState(true);
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -234,7 +236,7 @@ export default function PhotoTimelineScreen() {
           <Skeleton width={36} height={36} borderRadius={18} />
         </View>
 
-        <ScrollView style={styles.content}>
+        <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom }}>
           <View style={styles.statsContainer}>
             <Skeleton width={90} height={16} />
             <View style={[styles.statsRow, { marginTop: 14 }]}>
@@ -282,7 +284,7 @@ export default function PhotoTimelineScreen() {
         </Pressable>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom }}>
         {photos.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="camera-outline" size={64} color={colors.textSecondary} />

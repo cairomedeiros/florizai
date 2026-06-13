@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Skeleton } from '../../components/Skeleton';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -13,6 +14,7 @@ type WateringEvent = {
 export default function WateringCalendarScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [isLoading, setIsLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -346,7 +348,7 @@ export default function WateringCalendarScreen() {
           <Skeleton width={220} height={24} borderRadius={10} />
         </View>
 
-        <ScrollView style={styles.content}>
+        <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom }}>
           <Skeleton height={56} borderRadius={12} style={{ marginBottom: 20 }} />
 
           <View style={styles.monthNavigator}>
@@ -398,7 +400,7 @@ export default function WateringCalendarScreen() {
         <Text style={styles.headerTitle}>Calendario de Rega</Text>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom }}>
         <Pressable
           style={styles.overviewToggle}
           onPress={() => setShowOverview(!showOverview)}

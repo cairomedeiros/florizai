@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -21,10 +22,27 @@ export default function SignUpScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState('');
+
+  const passwordsMatch = confirmPassword === '' || password === confirmPassword;
+  const passwordStrength = password.length === 0 ? 0 : password.length < 8 ? 1 : password.length < 12 ? 2 : 3;
+  const strengthLabel = ['', 'Fraca', 'Média', 'Forte'];
+  const strengthColor = ['', colors.error, colors.warning, colors.success];
 
   const handleSignUp = async () => {
+    setError('');
+    if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
+      setError('Preencha todos os campos.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('A senha deve ter pelo menos 8 caracteres.');
+      return;
+    }
     if (password !== confirmPassword) {
-      console.log('Passwords do not match');
+      setError('As senhas não coincidem.');
       return;
     }
 
@@ -84,6 +102,54 @@ export default function SignUpScreen() {
       padding: 16,
       fontSize: 16,
       color: colors.text,
+    },
+    inputError: {
+      borderColor: colors.error,
+    },
+    inputWrapper: {
+      position: 'relative',
+    },
+    inputWithIcon: {
+      paddingRight: 52,
+    },
+    eyeButton: {
+      position: 'absolute',
+      right: 16,
+      top: 0,
+      bottom: 0,
+      justifyContent: 'center',
+    },
+    strengthRow: {
+      flexDirection: 'row',
+      gap: 4,
+      marginTop: 8,
+      alignItems: 'center',
+    },
+    strengthBar: {
+      flex: 1,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.border,
+    },
+    strengthBarActive: {
+      backgroundColor: strengthColor[passwordStrength],
+    },
+    strengthLabel: {
+      fontSize: 12,
+      color: strengthColor[passwordStrength],
+      marginLeft: 4,
+      minWidth: 38,
+    },
+    mismatchText: {
+      color: colors.error,
+      fontSize: 12,
+      marginTop: 6,
+    },
+    errorText: {
+      color: colors.error,
+      fontSize: 14,
+      marginBottom: 12,
+      textAlign: 'center',
     },
     signupButton: {
       backgroundColor: colors.primary,
@@ -234,35 +300,82 @@ export default function SignUpScreen() {
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Senha</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Minimo 8 caracteres"
-                placeholderTextColor={colors.textSecondary}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoComplete="password-new"
-              />
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={[styles.input, styles.inputWithIcon]}
+                  placeholder="Mínimo 8 caracteres"
+                  placeholderTextColor={colors.textSecondary}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoComplete="password-new"
+                />
+                <Pressable
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </Pressable>
+              </View>
+              {password.length > 0 && (
+                <View style={styles.strengthRow}>
+                  {[1, 2, 3].map((level) => (
+                    <View
+                      key={level}
+                      style={[
+                        styles.strengthBar,
+                        passwordStrength >= level && styles.strengthBarActive,
+                      ]}
+                    />
+                  ))}
+                  <Text style={styles.strengthLabel}>{strengthLabel[passwordStrength]}</Text>
+                </View>
+              )}
             </View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Confirmar Senha</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Digite a senha novamente"
-                placeholderTextColor={colors.textSecondary}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-                autoComplete="password-new"
-              />
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.inputWithIcon,
+                    !passwordsMatch && styles.inputError,
+                  ]}
+                  placeholder="Digite a senha novamente"
+                  placeholderTextColor={colors.textSecondary}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                  autoComplete="password-new"
+                />
+                <Pressable
+                  style={styles.eyeButton}
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <Ionicons
+                    name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </Pressable>
+              </View>
+              {!passwordsMatch && (
+                <Text style={styles.mismatchText}>As senhas não coincidem.</Text>
+              )}
             </View>
 
             <Text style={styles.terms}>
-              Ao criar uma conta, voce concorda com nossos{' '}
+              Ao criar uma conta, você concorda com nossos{' '}
               <Text style={styles.termsLink}>Termos de Uso</Text> e{' '}
-              <Text style={styles.termsLink}>Politica de Privacidade</Text>
+              <Text style={styles.termsLink}>Política de Privacidade</Text>
             </Text>
+
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
             <Pressable style={styles.signupButton} onPress={handleSignUp}>
               <Text style={styles.signupButtonText}>Criar Conta</Text>
@@ -276,16 +389,18 @@ export default function SignUpScreen() {
 
             <View style={styles.socialButtons}>
               <Pressable style={styles.socialButton} onPress={handleGoogleSignUp}>
+                <Ionicons name="logo-google" size={20} color={colors.text} />
                 <Text style={styles.socialButtonText}>Continuar com Google</Text>
               </Pressable>
 
               <Pressable style={styles.socialButton} onPress={handleAppleSignUp}>
+                <Ionicons name="logo-apple" size={20} color={colors.text} />
                 <Text style={styles.socialButtonText}>Continuar com Apple</Text>
               </Pressable>
             </View>
 
             <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Ja tem uma conta?</Text>
+              <Text style={styles.loginText}>Já tem uma conta?</Text>
               <Pressable onPress={() => router.back()}>
                 <Text style={styles.loginLink}>Entrar</Text>
               </Pressable>

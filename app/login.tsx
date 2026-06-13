@@ -1,6 +1,8 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -20,8 +22,15 @@ export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
 
   const handleLogin = async () => {
+    setError('');
+    if (!email.trim() || !password.trim()) {
+      setError('Preencha todos os campos.');
+      return;
+    }
     // TODO: Implement Supabase authentication
     router.replace('/(auth)/home');
   };
@@ -34,6 +43,14 @@ export default function LoginScreen() {
   const handleAppleLogin = async () => {
     // TODO: Implement Supabase Apple OAuth
     console.log('Apple login');
+  };
+
+  const handleForgotPassword = () => {
+    Alert.alert(
+      'Recuperar senha',
+      'Insira seu email cadastrado e enviaremos um link de recuperação.',
+      [{ text: 'OK' }]
+    );
   };
 
   const styles = StyleSheet.create({
@@ -78,6 +95,25 @@ export default function LoginScreen() {
       padding: 16,
       fontSize: 16,
       color: colors.text,
+    },
+    inputWrapper: {
+      position: 'relative',
+    },
+    inputWithIcon: {
+      paddingRight: 52,
+    },
+    eyeButton: {
+      position: 'absolute',
+      right: 16,
+      top: 0,
+      bottom: 0,
+      justifyContent: 'center',
+    },
+    errorText: {
+      color: colors.error,
+      fontSize: 14,
+      marginBottom: 12,
+      textAlign: 'center',
     },
     forgotPassword: {
       alignSelf: 'flex-end',
@@ -183,11 +219,7 @@ export default function LoginScreen() {
               <Skeleton width={120} height={16} />
             </View>
 
-            <Skeleton
-              height={54}
-              borderRadius={12}
-              style={{ marginBottom: 24 }}
-            />
+            <Skeleton height={54} borderRadius={12} style={{ marginBottom: 24 }} />
 
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
@@ -228,20 +260,34 @@ export default function LoginScreen() {
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Senha</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="********"
-                placeholderTextColor={colors.textSecondary}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoComplete="password"
-              />
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={[styles.input, styles.inputWithIcon]}
+                  placeholder="********"
+                  placeholderTextColor={colors.textSecondary}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoComplete="password"
+                />
+                <Pressable
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </Pressable>
+              </View>
             </View>
 
-            <Pressable style={styles.forgotPassword}>
+            <Pressable style={styles.forgotPassword} onPress={handleForgotPassword}>
               <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
             </Pressable>
+
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
             <Pressable style={styles.loginButton} onPress={handleLogin}>
               <Text style={styles.loginButtonText}>Entrar</Text>
@@ -255,16 +301,18 @@ export default function LoginScreen() {
 
             <View style={styles.socialButtons}>
               <Pressable style={styles.socialButton} onPress={handleGoogleLogin}>
+                <Ionicons name="logo-google" size={20} color={colors.text} />
                 <Text style={styles.socialButtonText}>Continuar com Google</Text>
               </Pressable>
 
               <Pressable style={styles.socialButton} onPress={handleAppleLogin}>
+                <Ionicons name="logo-apple" size={20} color={colors.text} />
                 <Text style={styles.socialButtonText}>Continuar com Apple</Text>
               </Pressable>
             </View>
 
             <View style={styles.signupContainer}>
-              <Text style={styles.signupText}>Nao tem uma conta?</Text>
+              <Text style={styles.signupText}>Não tem uma conta?</Text>
               <Pressable onPress={() => router.push('/signup' as any)}>
                 <Text style={styles.signupLink}>Criar conta</Text>
               </Pressable>
