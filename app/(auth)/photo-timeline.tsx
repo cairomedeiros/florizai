@@ -1,53 +1,79 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Skeleton } from '../../components/Skeleton';
+import { usePlants } from '../../contexts/PlantContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import * as api from '../../lib/api';
 
 type Photo = {
   id: string;
   date: Date;
-  note: string;
+  imageUri?: string;
 };
 
 export default function PhotoTimelineScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { plants } = usePlants();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  // No id (e.g. DevMenu) -> default to the first plant.
+  const plantId = id ?? plants[0]?.id;
 
   const [isLoading, setIsLoading] = useState(true);
   const [photos, setPhotos] = useState<Photo[]>([]);
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setPhotos([
-        {
-          id: '1',
-          date: new Date('2026-03-05'),
-          note: 'Primeira foto. Acabei de ganhar essa plantinha.',
-        },
-        {
-          id: '2',
-          date: new Date('2026-03-08'),
-          note: 'Notei um novo broto crescendo.',
-        },
-        {
-          id: '3',
-          date: new Date('2026-03-11'),
-          note: 'Esta crescendo rapido.',
-        },
-      ]);
+  const load = useCallback(async () => {
+    if (!plantId) {
+      setPhotos([]);
       setIsLoading(false);
-    }, 650);
+      return;
+    }
+    try {
+      const pics = await api.listPlantPictures(plantId).catch(() => []);
+      setPhotos(
+        pics
+          .map((p) => ({
+            id: p.id,
+            date: new Date(p.created_at),
+            imageUri: api.imageUrl(p.thumbnail_path ?? p.image_path),
+          }))
+          .sort((a, b) => b.date.getTime() - a.date.getTime())
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [plantId]);
 
-    return () => clearTimeout(timeout);
-  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const handleAddPhoto = () => {
-    // TODO: Implement camera/gallery picker
-    console.log('Add photo');
+  const handleAddPhoto = async () => {
+    if (!plantId) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+    const uri = result.assets[0].uri;
+    const name = uri.split('/').pop() || 'photo.jpg';
+    const type = name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+    try {
+      await api.addPlantPicture(plantId, { uri, name, type });
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await load();
+    } catch (e) {
+      console.error('Failed to add photo', e);
+    }
   };
 
   const formatDate = (date: Date) => {
@@ -316,11 +342,14 @@ export default function PhotoTimelineScreen() {
                 <View style={styles.timelineLine} />
                 <View style={styles.timelineDot} />
                 <View style={styles.photoCard}>
-                  <View style={styles.photoPlaceholder}>
-                    <Text style={styles.photoPlaceholderText}>Foto sera exibida aqui</Text>
-                  </View>
+                  {photo.imageUri ? (
+                    <Image source={{ uri: photo.imageUri }} style={styles.photoPlaceholder} contentFit="cover" />
+                  ) : (
+                    <View style={styles.photoPlaceholder}>
+                      <Text style={styles.photoPlaceholderText}>Foto sera exibida aqui</Text>
+                    </View>
+                  )}
                   <Text style={styles.photoDate}>{formatDate(photo.date)}</Text>
-                  <Text style={styles.photoNote}>{photo.note}</Text>
                 </View>
               </View>
             ))}

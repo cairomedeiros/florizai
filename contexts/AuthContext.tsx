@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { clearToken, login as apiLogin, signUp as apiSignUp } from '../lib/api';
 
 interface User {
   email: string;
@@ -10,6 +11,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -37,24 +39,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    try {
-      if (email && password) {
-        const newUser: User = {
-          email,
-          name: email.split('@')[0],
-        };
-        await AsyncStorage.setItem('user', JSON.stringify(newUser));
-        setUser(newUser);
-      } else {
-        throw new Error('Invalid credentials');
-      }
-    } catch (error) {
-      throw error;
-    }
+    await apiLogin(email, password); // throws ApiError on bad creds; stores token
+    const newUser: User = { email, name: email.split('@')[0] };
+    await AsyncStorage.setItem('user', JSON.stringify(newUser));
+    setUser(newUser);
+  };
+
+  const signUp = async (email: string, password: string) => {
+    const name = email.split('@')[0];
+    await apiSignUp(name, email, password); // throws ApiError; stores token
+    const newUser: User = { email, name };
+    await AsyncStorage.setItem('user', JSON.stringify(newUser));
+    setUser(newUser);
   };
 
   const signOut = async () => {
     try {
+      await clearToken();
       await AsyncStorage.removeItem('user');
       setUser(null);
     } catch (error) {
@@ -63,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, isLoading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

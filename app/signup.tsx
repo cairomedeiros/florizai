@@ -17,7 +17,7 @@ import { useTheme } from '../contexts/ThemeContext';
 
 export default function SignUpScreen() {
   const { colors } = useTheme();
-  const { isLoading: isAuthLoading } = useAuth();
+  const { isLoading: isAuthLoading, signUp } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,6 +25,7 @@ export default function SignUpScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const passwordsMatch = confirmPassword === '' || password === confirmPassword;
   const passwordStrength = password.length === 0 ? 0 : password.length < 8 ? 1 : password.length < 12 ? 2 : 3;
@@ -46,8 +47,15 @@ export default function SignUpScreen() {
       return;
     }
 
-    // TODO: Implement Supabase sign up
-    router.replace('/(auth)/home');
+    setSubmitting(true);
+    try {
+      await signUp(email.trim(), password);
+      router.replace('/(auth)/home');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha ao criar conta.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleGoogleSignUp = async () => {
@@ -377,8 +385,12 @@ export default function SignUpScreen() {
 
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-            <Pressable style={styles.signupButton} onPress={handleSignUp}>
-              <Text style={styles.signupButtonText}>Criar Conta</Text>
+            <Pressable
+              style={[styles.signupButton, submitting && { opacity: 0.6 }]}
+              onPress={handleSignUp}
+              disabled={submitting}
+            >
+              <Text style={styles.signupButtonText}>{submitting ? 'Criando...' : 'Criar Conta'}</Text>
             </Pressable>
 
             <View style={styles.divider}>

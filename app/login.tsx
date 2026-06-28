@@ -18,12 +18,13 @@ import { useTheme } from '../contexts/ThemeContext';
 
 export default function LoginScreen() {
   const { colors } = useTheme();
-  const { isLoading: isAuthLoading } = useAuth();
+  const { isLoading: isAuthLoading, signIn } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const handleLogin = async () => {
     setError('');
@@ -31,8 +32,15 @@ export default function LoginScreen() {
       setError('Preencha todos os campos.');
       return;
     }
-    // TODO: Implement Supabase authentication
-    router.replace('/(auth)/home');
+    setSubmitting(true);
+    try {
+      await signIn(email.trim(), password);
+      router.replace('/(auth)/home');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha ao entrar.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleGoogleLogin = async () => {
@@ -289,8 +297,12 @@ export default function LoginScreen() {
 
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-            <Pressable style={styles.loginButton} onPress={handleLogin}>
-              <Text style={styles.loginButtonText}>Entrar</Text>
+            <Pressable
+              style={[styles.loginButton, submitting && { opacity: 0.6 }]}
+              onPress={handleLogin}
+              disabled={submitting}
+            >
+              <Text style={styles.loginButtonText}>{submitting ? 'Entrando...' : 'Entrar'}</Text>
             </Pressable>
 
             <View style={styles.divider}>

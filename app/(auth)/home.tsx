@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -18,6 +19,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Plant, usePlants } from '../../contexts/PlantContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAnimatedList } from '../../hooks/useAnimatedList';
+import { confirmDestructive } from '../../lib/confirm';
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -48,6 +50,8 @@ export default function HomeScreen() {
 
   const handleAddPlant = () => router.push('/(auth)/plant-setup' as any);
   const handlePlantPress = (id: string) => router.push(`/(auth)/plant-chat?id=${id}` as any);
+  const handleTimeline = (id: string) => router.push(`/(auth)/photo-timeline?id=${id}` as any);
+  const handleCalendar = (id: string) => router.push(`/(auth)/watering-calendar?id=${id}` as any);
   const handleSettings = () => router.push('/(auth)/settings' as any);
 
   const handleMarkWatered = async (id: string) => {
@@ -55,9 +59,16 @@ export default function HomeScreen() {
     await markWatered(id);
   };
 
-  const handleDelete = async (id: string) => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    await deletePlant(id);
+  const handleDelete = (id: string, name: string) => {
+    confirmDestructive(
+      `Excluir ${name}?`,
+      'Isso remove a planta e todos os dados atrelados (fotos, histórico de rega e lembretes). Não dá pra desfazer.',
+      'Excluir',
+      async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        await deletePlant(id);
+      }
+    );
   };
 
   const handleRefresh = async () => {
@@ -83,17 +94,12 @@ export default function HomeScreen() {
     return `Em ${diffDays} dias`;
   };
 
-  const getHealthScore = (plant: Plant) => {
-    if (plant.wateringHistory.length === 0) return 0;
-    const recent = plant.wateringHistory.slice(-4).length;
-    return Math.round((recent / 4) * 100);
-  };
-
-  const healthColor = (score: number) => {
-    if (score >= 75) return colors.success;
-    if (score >= 40) return colors.warning;
-    return colors.error;
-  };
+  // Without a real watering logged yet, a countdown would falsely assume the
+  // plant was watered on the day it was added — show the cadence as a suggestion.
+  const wateringLabel = (plant: Plant) =>
+    plant.wateringHistory.length === 0
+      ? `Regar a cada ${plant.wateringIntervalDays} dias`
+      : formatNextWatering(plant.nextWatering);
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
@@ -166,19 +172,15 @@ export default function HomeScreen() {
     plantName: { fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 4 },
     plantWatering: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 },
     plantWateringText: { fontSize: 13, color: colors.textSecondary },
-    healthRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
-    healthBar: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.border, overflow: 'hidden' },
-    healthFill: { height: '100%', borderRadius: 2 },
-    healthLabel: { fontSize: 11, color: colors.textSecondary, minWidth: 28, textAlign: 'right' },
-    cardActions: { flexDirection: 'row', gap: 8 },
+    cardActions: { flexDirection: 'row', gap: 8, marginTop: 8 },
     waterBtn: {
-      flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
       gap: 6, backgroundColor: colors.primary,
       paddingVertical: 8, borderRadius: 10,
     },
     waterBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-    deleteBtn: {
-      width: 36, height: 36, borderRadius: 10,
+    iconBtn: {
+      flex: 1, height: 36, borderRadius: 10,
       backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border,
       alignItems: 'center', justifyContent: 'center',
     },
@@ -194,7 +196,6 @@ export default function HomeScreen() {
 
   const renderPlantCard = ({ item, index }: { item: Plant; index: number }) => {
     const anim = anims[index] ?? new Animated.Value(1);
-    const score = getHealthScore(item);
     return (
       <Animated.View
         style={{
@@ -206,26 +207,30 @@ export default function HomeScreen() {
         }}
       >
         <Pressable style={styles.plantCard} onPress={() => handlePlantPress(item.id)}>
-          <View style={styles.plantImage}>
-            <Ionicons name="leaf" size={48} color={colors.textSecondary} />
-          </View>
+          {item.thumbnailUri ? (
+            <Image source={{ uri: item.thumbnailUri }} style={styles.plantImage} contentFit="cover" />
+          ) : (
+            <View style={styles.plantImage}>
+              <Ionicons name="leaf" size={48} color={colors.textSecondary} />
+            </View>
+          )}
           <Text style={styles.plantName}>{item.name}</Text>
           <View style={styles.plantWatering}>
             <Ionicons name="water" size={14} color={colors.textSecondary} />
-            <Text style={styles.plantWateringText}>{formatNextWatering(item.nextWatering)}</Text>
+            <Text style={styles.plantWateringText}>{wateringLabel(item)}</Text>
           </View>
-          <View style={styles.healthRow}>
-            <View style={styles.healthBar}>
-              <View style={[styles.healthFill, { width: `${score}%`, backgroundColor: healthColor(score) }]} />
-            </View>
-            <Text style={styles.healthLabel}>{score}%</Text>
-          </View>
+          <Pressable style={styles.waterBtn} onPress={() => handleMarkWatered(item.id)}>
+            <Ionicons name="water" size={14} color="#fff" />
+            <Text style={styles.waterBtnText}>Reguei</Text>
+          </Pressable>
           <View style={styles.cardActions}>
-            <Pressable style={styles.waterBtn} onPress={() => handleMarkWatered(item.id)}>
-              <Ionicons name="water" size={14} color="#fff" />
-              <Text style={styles.waterBtnText}>Reguei</Text>
+            <Pressable style={styles.iconBtn} onPress={() => handleTimeline(item.id)}>
+              <Ionicons name="images-outline" size={16} color={colors.textSecondary} />
             </Pressable>
-            <Pressable style={styles.deleteBtn} onPress={() => handleDelete(item.id)}>
+            <Pressable style={styles.iconBtn} onPress={() => handleCalendar(item.id)}>
+              <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
+            </Pressable>
+            <Pressable style={styles.iconBtn} onPress={() => handleDelete(item.id, item.name)}>
               <Ionicons name="trash-outline" size={16} color={colors.error} />
             </Pressable>
           </View>

@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -29,6 +30,7 @@ export default function PlantSetupScreen() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const timeout = setTimeout(() => setIsLoading(false), 600);
@@ -64,17 +66,23 @@ export default function PlantSetupScreen() {
   };
 
   const handleSave = async () => {
-    if (!name.trim()) return;
+    if (!name.trim() || saving) return; // guard re-entry: no double-create
+    setSaving(true);
     const next = new Date();
     next.setDate(next.getDate() + 7);
-    await addPlant({
-      name: name.trim(),
-      description: description.trim(),
-      imageUri: imageUri ?? undefined,
-      nextWatering: next,
-    });
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    router.back();
+    try {
+      await addPlant({
+        name: name.trim(),
+        description: description.trim(),
+        imageUri: imageUri ?? undefined,
+        nextWatering: next,
+      });
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.back();
+    } catch (e) {
+      setSaving(false);
+      Alert.alert('Erro ao salvar', e instanceof Error ? e.message : 'Tente de novo.');
+    }
   };
 
   const styles = StyleSheet.create({
@@ -210,11 +218,18 @@ export default function PlantSetupScreen() {
         </View>
 
         <Pressable
-          style={[styles.saveButton, !name.trim() && styles.saveButtonDisabled]}
+          style={[styles.saveButton, (!name.trim() || saving) && styles.saveButtonDisabled]}
           onPress={handleSave}
-          disabled={!name.trim()}
+          disabled={!name.trim() || saving}
         >
-          <Text style={styles.saveButtonText}>Salvar Planta</Text>
+          {saving ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <ActivityIndicator color="#ffffff" />
+              <Text style={styles.saveButtonText}>Salvando...</Text>
+            </View>
+          ) : (
+            <Text style={styles.saveButtonText}>Salvar Planta</Text>
+          )}
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>

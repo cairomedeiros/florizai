@@ -1,24 +1,37 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
+import * as api from '../lib/api';
+import { useAuth } from './AuthContext';
+
+// ponytail: notifications no-op on web AND in Expo Go (SDK 53+ removed
+// expo-notifications there — needs a dev build). All notify calls are gated on
+// this flag, so flipping it false skips them entirely.
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+const canNotify = Platform.OS !== 'web' && !isExpoGo;
+
+// Fallback cadence when the backend hasn't inferred one yet (LLM sets
+// watering_interval_days from name+description, then refines via the photo).
+const WATERING_INTERVAL_DAYS = 7;
 
 export type Plant = {
   id: string;
   name: string;
-  species?: string;
   description?: string;
-  location?: string;
   imageUri?: string;
+  thumbnailUri?: string; // lighter image for card grids; falls back to imageUri
   nextWatering: Date;
+  wateringIntervalDays: number; // LLM-suggested cadence (falls back to 7)
   createdAt: Date;
-  wateringHistory: string[]; // ISO date strings
+  wateringHistory: string[]; // ISO date strings (YYYY-MM-DD)
 };
 
 interface PlantContextType {
   plants: Plant[];
   isLoading: boolean;
-  addPlant: (data: Omit<Plant, 'id' | 'createdAt' | 'wateringHistory'>) => Promise<void>;
-  updatePlant: (id: string, data: Partial<Plant>) => Promise<void>;
+  addPlant: (data: { name: string; description?: string; imageUri?: string; nextWatering: Date }) => Promise<void>;
+  updatePlant: (id: string, data: { name?: string; description?: string; imageUri?: string }) => Promise<void>;
   deletePlant: (id: string) => Promise<void>;
   markWatered: (id: string) => Promise<void>;
   refreshPlants: () => Promise<void>;
@@ -26,19 +39,20 @@ interface PlantContextType {
 
 const PlantContext = createContext<PlantContextType | undefined>(undefined);
 
-const STORAGE_KEY = '@florizai:plants';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+if (canNotify) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 async function scheduleWateringNotification(plant: Plant) {
+  if (!canNotify) return;
   await Notifications.cancelScheduledNotificationAsync(plant.id).catch(() => {});
 
   const trigger = new Date(plant.nextWatering);
@@ -56,23 +70,49 @@ async function scheduleWateringNotification(plant: Plant) {
   });
 }
 
+const addDays = (d: Date, n: number) => {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
+};
+
+// api.Plant + its watering events -> the shape the screens consume.
+function toPlant(p: api.Plant, events: api.WateringEvent[]): Plant {
+  const history = events.map((e) => e.watered_at.split('T')[0]).sort();
+  const last = history.length ? new Date(history[history.length - 1]) : new Date(p.created_at);
+  const interval = p.watering_interval_days ?? WATERING_INTERVAL_DAYS;
+  return {
+    id: p.id,
+    name: p.name,
+    description: p.description ?? undefined,
+    imageUri: api.imageUrl(p.file_path ?? p.pictures[0]?.image_path),
+    thumbnailUri: api.imageUrl(p.pictures[0]?.thumbnail_path ?? p.file_path ?? p.pictures[0]?.image_path),
+    nextWatering: addDays(last, interval),
+    wateringIntervalDays: interval,
+    createdAt: new Date(p.created_at),
+    wateringHistory: history,
+  };
+}
+
+function fileFromUri(uri: string): api.ImageFile {
+  const name = uri.split('/').pop() || 'photo.jpg';
+  const ext = name.split('.').pop()?.toLowerCase();
+  return { uri, name, type: ext === 'png' ? 'image/png' : 'image/jpeg' };
+}
+
 export function PlantProvider({ children }: { children: React.ReactNode }) {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadPlants = useCallback(async () => {
     try {
-      const json = await AsyncStorage.getItem(STORAGE_KEY);
-      if (json) {
-        const parsed = JSON.parse(json) as Plant[];
-        setPlants(
-          parsed.map((p) => ({
-            ...p,
-            nextWatering: new Date(p.nextWatering),
-            createdAt: new Date(p.createdAt),
-          }))
-        );
-      }
+      const raw = await api.listPlants();
+      // ponytail: N+1 — one watering-events fetch per plant. Fine for a small
+      // garden; add a batch endpoint if a user ever has dozens of plants.
+      const loaded = await Promise.all(
+        raw.map(async (p) => toPlant(p, await api.listWateringEvents(p.id).catch(() => [])))
+      );
+      setPlants(loaded);
     } catch (e) {
       console.error('Failed to load plants', e);
     } finally {
@@ -80,53 +120,57 @@ export function PlantProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Only fetch once logged in — otherwise we hit /plant/plants with no token (401).
+  // Clear the garden on logout so the next user doesn't see stale plants.
+  const { user } = useAuth();
   useEffect(() => {
+    if (!user) {
+      setPlants([]);
+      setIsLoading(false);
+      return;
+    }
     loadPlants();
-    Notifications.requestPermissionsAsync();
-  }, [loadPlants]);
+    if (canNotify) Notifications.requestPermissionsAsync();
+  }, [user, loadPlants]);
 
-  const persist = async (updated: Plant[]) => {
-    setPlants(updated);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  };
-
-  const addPlant = async (data: Omit<Plant, 'id' | 'createdAt' | 'wateringHistory'>) => {
-    const plant: Plant = {
-      ...data,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-      wateringHistory: [],
-    };
-    const updated = [plant, ...plants];
-    await persist(updated);
+  const addPlant = async (data: { name: string; description?: string; imageUri?: string; nextWatering: Date }) => {
+    const created = await api.createPlant(data.name, data.description);
+    if (data.imageUri) {
+      await api.addPlantPicture(created.id, fileFromUri(data.imageUri)).catch((e) =>
+        console.error('Failed to upload plant picture', e)
+      );
+    }
+    await loadPlants();
+    const plant = toPlant(created, []);
     await scheduleWateringNotification(plant);
   };
 
-  const updatePlant = async (id: string, data: Partial<Plant>) => {
-    const updated = plants.map((p) => (p.id === id ? { ...p, ...data } : p));
-    await persist(updated);
-    const plant = updated.find((p) => p.id === id);
-    if (plant) await scheduleWateringNotification(plant);
+  const updatePlant = async (id: string, data: { name?: string; description?: string; imageUri?: string }) => {
+    const current = plants.find((p) => p.id === id);
+    await api.updatePlant(id, data.name ?? current?.name ?? '', data.description ?? current?.description);
+    if (data.imageUri) {
+      await api.addPlantPicture(id, fileFromUri(data.imageUri)).catch((e) =>
+        console.error('Failed to upload plant picture', e)
+      );
+    }
+    await loadPlants();
   };
 
   const deletePlant = async (id: string) => {
-    await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
-    await persist(plants.filter((p) => p.id !== id));
+    if (canNotify) await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
+    await api.deletePlant(id);
+    setPlants((prev) => prev.filter((p) => p.id !== id));
   };
 
   const markWatered = async (id: string) => {
+    await api.addWateringEvent(id);
     const today = new Date().toISOString().split('T')[0];
-    const updated = plants.map((p) => {
-      if (p.id !== id) return p;
-      const next = new Date();
-      next.setDate(next.getDate() + 7);
-      return {
-        ...p,
-        nextWatering: next,
-        wateringHistory: [...p.wateringHistory, today],
-      };
-    });
-    await persist(updated);
+    const updated = plants.map((p) =>
+      p.id === id
+        ? { ...p, nextWatering: addDays(new Date(), p.wateringIntervalDays), wateringHistory: [...p.wateringHistory, today] }
+        : p
+    );
+    setPlants(updated);
     const plant = updated.find((p) => p.id === id);
     if (plant) await scheduleWateringNotification(plant);
   };

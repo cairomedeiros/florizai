@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Skeleton } from '../../components/Skeleton';
+import { usePlants } from '../../contexts/PlantContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import * as api from '../../lib/api';
 
 type WateringEvent = {
   date: string; // YYYY-MM-DD
@@ -15,31 +17,33 @@ export default function WateringCalendarScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { plants } = usePlants();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  // No id (e.g. DevMenu) -> default to the first plant.
+  const plantId = id ?? plants[0]?.id;
 
   const [isLoading, setIsLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showOverview, setShowOverview] = useState(false);
   const [wateringEvents, setWateringEvents] = useState<WateringEvent[]>([]);
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setWateringEvents([
-        { date: '2026-01-15', watered: true },
-        { date: '2026-01-18', watered: true },
-        { date: '2026-01-22', watered: true },
-        { date: '2026-02-03', watered: true },
-        { date: '2026-02-10', watered: true },
-        { date: '2026-02-17', watered: true },
-        { date: '2026-02-24', watered: true },
-        { date: '2026-03-05', watered: true },
-        { date: '2026-03-08', watered: true },
-        { date: '2026-03-11', watered: true },
-      ]);
+  const load = useCallback(async () => {
+    if (!plantId) {
+      setWateringEvents([]);
       setIsLoading(false);
-    }, 650);
+      return;
+    }
+    try {
+      const events = await api.listWateringEvents(plantId).catch(() => []);
+      setWateringEvents(events.map((e) => ({ date: e.watered_at.split('T')[0], watered: true })));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [plantId]);
 
-    return () => clearTimeout(timeout);
-  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const monthNames = [
     'Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho',
@@ -64,18 +68,22 @@ export default function WateringCalendarScreen() {
     return wateringEvents.some((event) => event.date === dateStr && event.watered);
   };
 
-  const toggleWatering = (day: number) => {
+  // ponytail: API can create a watering event but not delete a single one
+  // (only delete-all per plant), so tapping a day is add-only, not a toggle.
+  const toggleWatering = async (day: number) => {
+    if (!plantId) return;
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    if (wateringEvents.some((e) => e.date === dateStr)) return;
 
-    setWateringEvents((prev) => {
-      const existingIndex = prev.findIndex((e) => e.date === dateStr);
-      if (existingIndex >= 0) {
-        return prev.filter((_, i) => i !== existingIndex);
-      }
-      return [...prev, { date: dateStr, watered: true }];
-    });
+    setWateringEvents((prev) => [...prev, { date: dateStr, watered: true }]); // optimistic
+    try {
+      await api.addWateringEvent(plantId, new Date(year, month, day, 12).toISOString());
+    } catch (e) {
+      console.error('Failed to log watering', e);
+      setWateringEvents((prev) => prev.filter((ev) => ev.date !== dateStr)); // rollback
+    }
   };
 
   const changeMonth = (direction: 'prev' | 'next') => {

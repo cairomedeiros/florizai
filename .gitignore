@@ -33,6 +33,9 @@ yarn-error.*
 # local env files
 .env*.local
 
+# dev scratch notes (kept local, not committed)
+FRONTEND.md
+
 # typescript
 *.tsbuildinfo
 

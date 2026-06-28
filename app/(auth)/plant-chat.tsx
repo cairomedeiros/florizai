@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Skeleton } from '../../components/Skeleton';
 import { useTheme } from '../../contexts/ThemeContext';
+import * as api from '../../lib/api';
 
 type Message = {
   id: string;
@@ -23,51 +24,87 @@ type Message = {
   timestamp: Date;
 };
 
+const GREETING: Message = {
+  id: 'greeting',
+  text: 'Ola! Como posso ajudar voce a cuidar melhor da sua planta hoje?',
+  isBot: true,
+  timestamp: new Date(),
+};
+
 export default function PlantChatScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { id: plantId } = useLocalSearchParams<{ id?: string }>();
 
   const [isLoading, setIsLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [chatId, setChatId] = useState<string | null>(null);
   const [input, setInput] = useState('');
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      setMessages([
-        {
-          id: '1',
-          text: 'Ola! Como posso ajudar voce a cuidar melhor da sua planta hoje?',
-          isBot: true,
-          timestamp: new Date(),
-        },
-      ]);
-      setIsLoading(false);
-    }, 650);
-
-    return () => clearTimeout(timeout);
-  }, []);
+    let active = true;
+    (async () => {
+      try {
+        // No plant context (e.g. opened from DevMenu) -> standalone RAG, no chat.
+        if (!plantId) {
+          setMessages([GREETING]);
+          return;
+        }
+        const chat = await api.createChat(plantId);
+        if (!active) return;
+        setChatId(chat.id);
+        const history = await api.listMessages(chat.id);
+        if (!active) return;
+        setMessages(
+          history.length
+            ? history.map((m) => ({
+                id: m.id,
+                text: m.content,
+                isBot: m.role === 'assistant',
+                timestamp: new Date(m.created_at),
+              }))
+            : [GREETING]
+        );
+      } catch (e) {
+        console.error('Failed to start chat', e);
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [plantId]);
 
   const addMessage = (text: string, isBot: boolean) => {
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      text,
-      isBot,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, newMessage]);
+    setMessages((prev) => [
+      ...prev,
+      { id: `${Date.now()}-${isBot}`, text, isBot, timestamp: new Date() },
+    ]);
   };
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    const question = input.trim();
+    if (!question || sending) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    addMessage(input, false);
+    addMessage(question, false);
     setInput('');
-
-    // TODO: Implement AI response logic with Supabase/OpenAI
-    setTimeout(() => {
-      addMessage('Entendo sua dúvida. Vou pesquisar boas práticas para essa planta.', true);
-    }, 1000);
+    setSending(true);
+    try {
+      if (chatId) {
+        const reply = await api.sendMessage(chatId, { content: question });
+        addMessage(reply.content, true);
+      } else {
+        const { answer } = await api.ask(question);
+        addMessage(answer, true);
+      }
+    } catch (e) {
+      addMessage(e instanceof Error ? e.message : 'Erro ao responder. Tente de novo.', true);
+    } finally {
+      setSending(false);
+    }
   };
 
   const styles = StyleSheet.create({
@@ -244,7 +281,7 @@ export default function PlantChatScreen() {
         <Pressable
           style={styles.sendButton}
           onPress={handleSend}
-          disabled={!input.trim()}
+          disabled={!input.trim() || sending}
         >
           <Ionicons name="send" size={20} color="#ffffff" />
         </Pressable>
