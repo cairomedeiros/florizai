@@ -1,11 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -13,11 +12,11 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Skeleton } from '../../components/Skeleton';
+import { Input, PrimaryButton, ScreenHeader } from '../../components/ui';
 import { usePlants } from '../../contexts/PlantContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -87,65 +86,46 @@ export default function PlantSetupScreen() {
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
-    header: {
-      paddingTop: 50, paddingHorizontal: 20, paddingBottom: 16,
-      backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border,
-      flexDirection: 'row', alignItems: 'center', gap: 12,
-    },
-    backButton: {
-      width: 36, height: 36, borderRadius: 18,
-      backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center',
-    },
-    headerTitle: { flex: 1, fontSize: 20, fontWeight: 'bold', color: colors.text },
-    content: { flex: 1, padding: 24 },
-    photoSection: { alignItems: 'center', marginBottom: 32 },
-    photoCircle: {
-      width: 160, height: 160, borderRadius: 80,
-      backgroundColor: colors.surface,
-      borderWidth: 3, borderColor: colors.border, borderStyle: 'dashed',
-      alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+    content: { flex: 1, paddingHorizontal: 24, paddingTop: 8 },
+    photoSection: { alignItems: 'center', marginBottom: 30 },
+    photoBox: {
+      width: 168, height: 168, borderRadius: 32,
+      backgroundColor: colors.primarySoft,
+      borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed',
+      alignItems: 'center', justifyContent: 'center', marginBottom: 14,
       overflow: 'hidden',
     },
-    photoCircleWithImage: { borderStyle: 'solid', borderColor: colors.primary },
+    photoBoxWithImage: { borderStyle: 'solid', borderColor: colors.primary },
     photoImage: { width: '100%', height: '100%' },
     photoText: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', marginTop: 8 },
-    addPhotoButton: { backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24 },
-    addPhotoButtonText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
-    inputContainer: { marginBottom: 24 },
-    label: { fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 8 },
-    labelOptional: { fontSize: 14, color: colors.textSecondary, fontWeight: 'normal' },
-    input: {
-      backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
-      borderRadius: 12, padding: 16, fontSize: 16, color: colors.text,
+    changePhoto: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      paddingVertical: 8, paddingHorizontal: 16,
+      borderRadius: 999, backgroundColor: colors.surface,
+      borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
     },
-    textArea: { minHeight: 100, textAlignVertical: 'top' },
-    saveButton: { backgroundColor: colors.primary, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8 },
-    saveButtonDisabled: { backgroundColor: colors.border },
-    saveButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
-    hint: { fontSize: 12, color: colors.textSecondary, marginTop: 8, lineHeight: 18 },
+    changePhotoText: { color: colors.primary, fontSize: 13.5, fontWeight: '700' },
+    inputContainer: { marginBottom: 22 },
   });
 
   if (isLoading) {
     return (
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-        <View style={styles.header}>
-          <Skeleton width={36} height={36} borderRadius={18} />
-          <Skeleton width={170} height={24} borderRadius={10} />
-        </View>
+        <ScreenHeader title="Nova planta" onBack={handleBack} />
         <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}>
           <View style={styles.photoSection}>
-            <Skeleton width={160} height={160} borderRadius={80} />
-            <Skeleton width={140} height={42} borderRadius={24} style={{ marginTop: 8 }} />
+            <Skeleton width={168} height={168} borderRadius={32} />
+            <Skeleton width={130} height={36} borderRadius={18} style={{ marginTop: 14 }} />
           </View>
           <View style={styles.inputContainer}>
-            <Skeleton width={110} height={16} style={{ marginBottom: 8 }} />
-            <Skeleton height={54} borderRadius={12} />
+            <Skeleton width={110} height={14} style={{ marginBottom: 8 }} />
+            <Skeleton height={54} borderRadius={16} />
           </View>
           <View style={styles.inputContainer}>
-            <Skeleton width={140} height={16} style={{ marginBottom: 8 }} />
-            <Skeleton height={110} borderRadius={12} />
+            <Skeleton width={140} height={14} style={{ marginBottom: 8 }} />
+            <Skeleton height={110} borderRadius={16} />
           </View>
-          <Skeleton height={54} borderRadius={12} />
+          <Skeleton height={54} borderRadius={18} />
         </ScrollView>
       </KeyboardAvoidingView>
     );
@@ -153,12 +133,7 @@ export default function PlantSetupScreen() {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-      <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={handleBack}>
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Adicionar Planta</Text>
-      </View>
+      <ScreenHeader title="Nova planta" onBack={handleBack} />
 
       <ScrollView
         style={styles.content}
@@ -167,70 +142,51 @@ export default function PlantSetupScreen() {
       >
         <View style={styles.photoSection}>
           <Pressable
-            style={[styles.photoCircle, imageUri && styles.photoCircleWithImage]}
+            style={[styles.photoBox, imageUri && styles.photoBoxWithImage]}
             onPress={handleAddPhoto}
           >
             {imageUri ? (
               <Image source={{ uri: imageUri }} style={styles.photoImage} contentFit="cover" />
             ) : (
               <>
-                <Ionicons name="camera-outline" size={64} color={colors.textSecondary} />
-                <Text style={styles.photoText}>Toque para adicionar</Text>
+                <Ionicons name="camera-outline" size={52} color={colors.primary} />
+                <Text style={styles.photoText}>Toque para adicionar{'\n'}uma foto</Text>
               </>
             )}
           </Pressable>
-          <Pressable style={styles.addPhotoButton} onPress={handleAddPhoto}>
-            <Text style={styles.addPhotoButtonText}>{imageUri ? 'Trocar Foto' : 'Escolher Foto'}</Text>
+          <Pressable style={styles.changePhoto} onPress={handleAddPhoto}>
+            <Ionicons name="image-outline" size={15} color={colors.primary} />
+            <Text style={styles.changePhotoText}>{imageUri ? 'Trocar foto' : 'Escolher foto'}</Text>
           </Pressable>
         </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>
-            Nome da Planta <Text style={{ color: colors.error }}>*</Text>
-          </Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ex: Suculenta da Sala"
-            placeholderTextColor={colors.textSecondary}
-            value={name}
-            onChangeText={setName}
-            autoCapitalize="words"
-          />
-          <Text style={styles.hint}>Dê um nome carinhoso para sua plantinha</Text>
-        </View>
+        <Input
+          label="Nome da planta"
+          placeholder="Ex: Suculenta da Sala"
+          value={name}
+          onChangeText={setName}
+          autoCapitalize="words"
+          hint="Dê um nome carinhoso para sua plantinha"
+        />
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>
-            Descrição <Text style={styles.labelOptional}>(opcional)</Text>
-          </Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Ex: Suculenta pequena perto da janela."
-            placeholderTextColor={colors.textSecondary}
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            numberOfLines={4}
-          />
-          <Text style={styles.hint}>
-            Adicione informações sobre espécie, localização ou cuidados especiais
-          </Text>
-        </View>
+        <Input
+          label="Descrição"
+          optional
+          placeholder="Ex: Suculenta pequena perto da janela."
+          value={description}
+          onChangeText={setDescription}
+          multiline
+          numberOfLines={4}
+          hint="Adicione informações sobre espécie, localização ou cuidados especiais"
+        />
 
-        <Pressable
-          style={[styles.saveButton, (!name.trim() || saving) && styles.saveButtonDisabled]}
+        <PrimaryButton
+          label={saving ? 'Salvando...' : 'Salvar planta'}
           onPress={handleSave}
-          disabled={!name.trim() || saving}
-        >
-          {saving ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <ActivityIndicator color="#ffffff" />
-              <Text style={styles.saveButtonText}>Salvando...</Text>
-            </View>
-          ) : (
-            <Text style={styles.saveButtonText}>Salvar Planta</Text>
-          )}
-        </Pressable>
+          disabled={!name.trim()}
+          loading={saving}
+          style={{ marginTop: 8 }}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ScreenHeader, displayFont } from '../../components/ui';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -24,19 +25,19 @@ function SettingsRow({ icon, label, value, danger, onPress }: RowProps) {
         {
           flexDirection: 'row', alignItems: 'center', gap: 14,
           paddingVertical: 14, paddingHorizontal: 16,
-          backgroundColor: pressed ? colors.border : 'transparent',
+          backgroundColor: pressed ? colors.surfaceAlt : 'transparent',
         },
       ]}
       onPress={onPress}
     >
       <View style={{
-        width: 36, height: 36, borderRadius: 10,
-        backgroundColor: danger ? `${colors.error}20` : colors.background,
+        width: 38, height: 38, borderRadius: 12,
+        backgroundColor: danger ? `${colors.error}18` : colors.primarySoft,
         alignItems: 'center', justifyContent: 'center',
       }}>
-        <Ionicons name={icon as any} size={20} color={danger ? colors.error : colors.primary} />
+        <Ionicons name={icon as any} size={19} color={danger ? colors.error : colors.primary} />
       </View>
-      <Text style={{ flex: 1, fontSize: 15, color }}>{label}</Text>
+      <Text style={{ flex: 1, fontSize: 15, fontWeight: '500', color }}>{label}</Text>
       {value ? (
         <Text style={{ fontSize: 14, color: colors.textSecondary }}>{value}</Text>
       ) : null}
@@ -49,10 +50,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   const { colors } = useTheme();
   return (
     <View style={{ marginBottom: 24 }}>
-      <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.8, paddingHorizontal: 16, marginBottom: 4 }}>
+      <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.8, paddingHorizontal: 16, marginBottom: 6 }}>
         {title}
       </Text>
-      <View style={{ backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' }}>
+      <View style={{ backgroundColor: colors.surface, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' }}>
         {children}
       </View>
     </View>
@@ -61,7 +62,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Divider() {
   const { colors } = useTheme();
-  return <View style={{ height: 1, backgroundColor: colors.border, marginLeft: 66 }} />;
+  return <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: 68 }} />;
 }
 
 export default function SettingsScreen() {
@@ -94,28 +95,21 @@ export default function SettingsScreen() {
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
-    header: {
-      paddingTop: 50, paddingHorizontal: 20, paddingBottom: 16,
-      backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border,
-      flexDirection: 'row', alignItems: 'center', gap: 12,
-    },
-    backButton: {
-      width: 36, height: 36, borderRadius: 18,
-      backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center',
-    },
-    headerTitle: { flex: 1, fontSize: 20, fontWeight: 'bold', color: colors.text },
     avatar: {
-      width: 72, height: 72, borderRadius: 36,
+      width: 68, height: 68, borderRadius: 34,
       backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
     },
-    avatarText: { fontSize: 28, fontWeight: 'bold', color: '#fff' },
+    avatarText: { fontSize: 26, fontFamily: displayFont, color: colors.onPrimary },
     profileCard: {
-      backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border,
-      padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24,
+      backgroundColor: colors.surface, borderRadius: 22,
+      borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+      padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 28,
+      shadowColor: '#1B2A21', shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
     },
-    profileName: { fontSize: 18, fontWeight: '700', color: colors.text },
-    profileEmail: { fontSize: 14, color: colors.textSecondary, marginTop: 2 },
-    content: { padding: 20 },
+    profileName: { fontSize: 20, fontFamily: displayFont, color: colors.text },
+    profileEmail: { fontSize: 14, color: colors.textSecondary, marginTop: 3 },
+    content: { paddingHorizontal: 20, paddingTop: 8 },
     version: { textAlign: 'center', fontSize: 12, color: colors.textSecondary, marginTop: 8, marginBottom: 8 },
   });
 
@@ -123,12 +117,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Configurações</Text>
-      </View>
+      <ScreenHeader title="Configurações" />
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
         <View style={styles.profileCard}>
@@ -190,7 +179,7 @@ export default function SettingsScreen() {
           <SettingsRow icon="log-out-outline" label="Sair da conta" danger onPress={handleSignOut} />
         </Section>
 
-        <Text style={styles.version}>FlorizAI v1.0.0</Text>
+        <Text style={styles.version}>Floriz v1.0.0</Text>
       </ScrollView>
     </View>
   );

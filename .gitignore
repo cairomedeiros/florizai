@@ -36,6 +36,9 @@ yarn-error.*
 # dev scratch notes (kept local, not committed)
 FRONTEND.md
 
+# Claude Code local config/skills
+.claude/
+
 # typescript
 *.tsbuildinfo
 

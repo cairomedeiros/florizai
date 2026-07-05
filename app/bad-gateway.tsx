@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { PrimaryButton, displayFont } from '../components/ui';
 import { useTheme } from '../contexts/ThemeContext';
 
 export default function BadGatewayScreen() {
@@ -17,8 +18,8 @@ export default function BadGatewayScreen() {
       gap: 12,
     },
     code: {
-      fontSize: 52,
-      fontWeight: '700',
+      fontSize: 72,
+      fontFamily: displayFont,
       color: colors.primary,
     },
     title: {
@@ -35,17 +36,6 @@ export default function BadGatewayScreen() {
       lineHeight: 22,
       marginBottom: 8,
     },
-    button: {
-      backgroundColor: colors.primary,
-      paddingVertical: 12,
-      paddingHorizontal: 18,
-      borderRadius: 10,
-    },
-    buttonText: {
-      color: '#ffffff',
-      fontSize: 15,
-      fontWeight: '600',
-    },
   });
 
   return (
@@ -55,10 +45,11 @@ export default function BadGatewayScreen() {
       <Text style={styles.message}>
         O serviço está indisponível no momento. Tente novamente em instantes.
       </Text>
-
-      <Pressable style={styles.button} onPress={() => router.replace('/')}>
-        <Text style={styles.buttonText}>Voltar ao início</Text>
-      </Pressable>
+      <PrimaryButton
+        label="Voltar ao início"
+        onPress={() => router.replace('/')}
+        style={{ paddingHorizontal: 24 }}
+      />
     </View>
   );
 }

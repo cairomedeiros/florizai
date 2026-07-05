@@ -2,11 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Skeleton } from '../../components/Skeleton';
+import { Chip, IconButton, ScreenHeader, displayFont } from '../../components/ui';
 import { usePlants } from '../../contexts/PlantContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import * as api from '../../lib/api';
@@ -19,7 +20,6 @@ type Photo = {
 
 export default function PhotoTimelineScreen() {
   const { colors } = useTheme();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { plants } = usePlants();
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -83,7 +83,7 @@ export default function PhotoTimelineScreen() {
 
     if (diffDays === 0) return 'Hoje';
     if (diffDays === 1) return 'Ontem';
-    if (diffDays < 7) return `${diffDays} dias atras`;
+    if (diffDays < 7) return `${diffDays} dias atrás`;
 
     return date.toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -101,196 +101,74 @@ export default function PhotoTimelineScreen() {
   };
 
   const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    header: {
-      paddingTop: 50,
-      paddingHorizontal: 20,
-      paddingBottom: 16,
-      backgroundColor: colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    },
-    backButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: colors.background,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    headerTitle: {
-      flex: 1,
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: colors.text,
-    },
-    addButton: {
-      backgroundColor: colors.primary,
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    content: {
-      flex: 1,
-      padding: 20,
-    },
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { flex: 1, paddingHorizontal: 20 },
+    chipsRow: { flexDirection: 'row', gap: 8, marginBottom: 18, marginTop: 4 },
     emptyContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingHorizontal: 40,
+      flex: 1, justifyContent: 'center', alignItems: 'center',
+      paddingHorizontal: 40, paddingTop: 60,
+    },
+    emptyArt: {
+      width: 108, height: 108, borderRadius: 54,
+      backgroundColor: colors.primarySoft,
+      alignItems: 'center', justifyContent: 'center', marginBottom: 20,
+    },
+    emptyTitle: {
+      fontSize: 24, fontFamily: displayFont, color: colors.text,
+      textAlign: 'center', marginBottom: 10,
     },
     emptyText: {
-      fontSize: 18,
-      color: colors.textSecondary,
-      textAlign: 'center',
-      marginBottom: 24,
+      fontSize: 15, color: colors.textSecondary, textAlign: 'center',
+      marginBottom: 28, lineHeight: 22,
     },
     emptyButton: {
       backgroundColor: colors.primary,
-      paddingHorizontal: 24,
-      paddingVertical: 12,
-      borderRadius: 12,
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      paddingHorizontal: 26, paddingVertical: 13, borderRadius: 999,
     },
-    emptyButtonText: {
-      color: '#ffffff',
-      fontSize: 16,
-      fontWeight: '600',
-    },
-    timelineItem: {
-      flexDirection: 'row',
-      marginBottom: 32,
-    },
-    timelineLine: {
-      width: 2,
-      backgroundColor: colors.border,
-      marginHorizontal: 16,
-    },
-    timelineDot: {
-      width: 16,
-      height: 16,
-      borderRadius: 8,
-      backgroundColor: colors.primary,
-      position: 'absolute',
-      left: 8,
-      top: 8,
-      borderWidth: 3,
-      borderColor: colors.background,
-    },
+    emptyButtonText: { color: colors.onPrimary, fontSize: 15, fontWeight: '700' },
     photoCard: {
-      flex: 1,
       backgroundColor: colors.surface,
-      borderRadius: 12,
-      padding: 16,
-      marginLeft: 8,
-      borderWidth: 1,
+      borderRadius: 22,
+      padding: 10,
+      marginBottom: 14,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
+      shadowColor: '#1B2A21',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
+      elevation: 2,
     },
-    photoPlaceholder: {
-      width: '100%',
-      height: 200,
-      backgroundColor: colors.background,
-      borderRadius: 8,
-      marginBottom: 12,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: colors.border,
+    photo: {
+      width: '100%', height: 240, borderRadius: 16,
+      backgroundColor: colors.primarySoft,
+      alignItems: 'center', justifyContent: 'center',
     },
-    photoPlaceholderText: {
-      fontSize: 14,
-      color: colors.textSecondary,
+    photoPlaceholderText: { fontSize: 14, color: colors.textSecondary },
+    photoFooter: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      paddingHorizontal: 6, paddingTop: 10, paddingBottom: 4,
     },
-    photoDate: {
-      fontSize: 12,
-      color: colors.textSecondary,
-      marginBottom: 8,
-      fontWeight: '600',
-    },
-    photoNote: {
-      fontSize: 15,
-      color: colors.text,
-      lineHeight: 22,
-    },
-    statsContainer: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 20,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    statsTitle: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: colors.text,
-      marginBottom: 12,
-    },
-    statsRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-    },
-    statItem: {
-      alignItems: 'center',
-    },
-    statValue: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: colors.primary,
-    },
-    statLabel: {
-      fontSize: 12,
-      color: colors.textSecondary,
-      marginTop: 4,
-    },
+    photoDate: { fontSize: 13.5, fontWeight: '600', color: colors.textSecondary },
   });
 
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Skeleton width={36} height={36} borderRadius={18} />
-          <Skeleton width={190} height={24} borderRadius={10} style={{ flex: 1 }} />
-          <Skeleton width={36} height={36} borderRadius={18} />
-        </View>
-
-        <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom }}>
-          <View style={styles.statsContainer}>
-            <Skeleton width={90} height={16} />
-            <View style={[styles.statsRow, { marginTop: 14 }]}>
-              <View style={styles.statItem}>
-                <Skeleton width={26} height={24} />
-                <Skeleton width={45} height={12} style={{ marginTop: 6 }} />
-              </View>
-              <View style={styles.statItem}>
-                <Skeleton width={26} height={24} />
-                <Skeleton width={110} height={12} style={{ marginTop: 6 }} />
-              </View>
-            </View>
+        <ScreenHeader
+          title="Evolução"
+          right={<Skeleton width={40} height={40} borderRadius={20} />}
+        />
+        <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}>
+          <View style={styles.chipsRow}>
+            <Skeleton width={80} height={28} borderRadius={14} />
+            <Skeleton width={150} height={28} borderRadius={14} />
           </View>
-
           {Array.from({ length: 3 }).map((_, index) => (
-            <View key={index} style={styles.timelineItem}>
-              <View style={styles.timelineLine} />
-              <Skeleton
-                width={16}
-                height={16}
-                borderRadius={8}
-                style={{ position: 'absolute', left: 8, top: 8 }}
-              />
-              <View style={styles.photoCard}>
-                <Skeleton height={200} borderRadius={8} style={{ marginBottom: 12 }} />
-                <Skeleton width={90} height={12} style={{ marginBottom: 8 }} />
-                <Skeleton width="95%" height={14} />
-              </View>
+            <View key={index} style={styles.photoCard}>
+              <Skeleton height={240} borderRadius={16} />
+              <Skeleton width={110} height={14} style={{ marginTop: 12, marginLeft: 6, marginBottom: 4 }} />
             </View>
           ))}
         </ScrollView>
@@ -300,55 +178,64 @@ export default function PhotoTimelineScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Timeline de Evolucao</Text>
-        <Pressable style={styles.addButton} onPress={handleAddPhoto}>
-          <Ionicons name="add" size={20} color="#ffffff" />
-        </Pressable>
-      </View>
+      <ScreenHeader
+        title="Evolução"
+        right={
+          <IconButton
+            icon="add"
+            onPress={handleAddPhoto}
+            background={colors.primary}
+            color={colors.onPrimary}
+          />
+        }
+      />
 
-      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom }}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}>
         {photos.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="camera-outline" size={64} color={colors.textSecondary} />
+            <View style={styles.emptyArt}>
+              <Ionicons name="camera-outline" size={46} color={colors.primary} />
+            </View>
+            <Text style={styles.emptyTitle}>Registre o crescimento</Text>
             <Text style={styles.emptyText}>
-              Comece a documentar o crescimento da sua planta.
+              Tire fotos com o tempo e acompanhe a evolução da sua planta.
             </Text>
-            <Pressable style={styles.emptyButton} onPress={handleAddPhoto}>
+            <Pressable
+              style={({ pressed }) => [styles.emptyButton, pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 }]}
+              onPress={handleAddPhoto}
+            >
+              <Ionicons name="camera" size={17} color={colors.onPrimary} />
               <Text style={styles.emptyButtonText}>Adicionar primeira foto</Text>
             </Pressable>
           </View>
         ) : (
           <>
-            <View style={styles.statsContainer}>
-              <Text style={styles.statsTitle}>Progresso</Text>
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{photos.length}</Text>
-                  <Text style={styles.statLabel}>Fotos</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{getDaysTracking()}</Text>
-                  <Text style={styles.statLabel}>Dias acompanhando</Text>
-                </View>
-              </View>
+            <View style={styles.chipsRow}>
+              <Chip
+                icon="images"
+                label={`${photos.length} ${photos.length === 1 ? 'foto' : 'fotos'}`}
+                color={colors.primary}
+                background={colors.primarySoft}
+              />
+              <Chip
+                icon="time"
+                label={`${getDaysTracking()} dias acompanhando`}
+                color={colors.accent}
+                background={colors.accentSoft}
+              />
             </View>
 
             {photos.map((photo) => (
-              <View key={photo.id} style={styles.timelineItem}>
-                <View style={styles.timelineLine} />
-                <View style={styles.timelineDot} />
-                <View style={styles.photoCard}>
-                  {photo.imageUri ? (
-                    <Image source={{ uri: photo.imageUri }} style={styles.photoPlaceholder} contentFit="cover" />
-                  ) : (
-                    <View style={styles.photoPlaceholder}>
-                      <Text style={styles.photoPlaceholderText}>Foto sera exibida aqui</Text>
-                    </View>
-                  )}
+              <View key={photo.id} style={styles.photoCard}>
+                {photo.imageUri ? (
+                  <Image source={{ uri: photo.imageUri }} style={styles.photo} contentFit="cover" />
+                ) : (
+                  <View style={styles.photo}>
+                    <Text style={styles.photoPlaceholderText}>Foto será exibida aqui</Text>
+                  </View>
+                )}
+                <View style={styles.photoFooter}>
+                  <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
                   <Text style={styles.photoDate}>{formatDate(photo.date)}</Text>
                 </View>
               </View>

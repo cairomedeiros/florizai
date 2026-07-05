@@ -9,10 +9,10 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { Skeleton } from '../components/Skeleton';
+import { Input, PrimaryButton, displayFont } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -22,7 +22,6 @@ export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -62,139 +61,48 @@ export default function LoginScreen() {
   };
 
   const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    scrollContent: {
-      flexGrow: 1,
-      justifyContent: 'center',
-      padding: 24,
-    },
-    header: {
-      alignItems: 'center',
-      marginBottom: 40,
+    container: { flex: 1, backgroundColor: colors.background },
+    scrollContent: { flexGrow: 1, justifyContent: 'center', padding: 28 },
+    header: { alignItems: 'center', marginBottom: 40 },
+    logoMark: {
+      width: 76, height: 76, borderRadius: 38,
+      backgroundColor: colors.primarySoft,
+      alignItems: 'center', justifyContent: 'center', marginBottom: 18,
     },
     title: {
-      fontSize: 36,
-      fontWeight: 'bold',
-      color: colors.primary,
-      marginBottom: 8,
-    },
-    subtitle: {
-      fontSize: 16,
-      color: colors.textSecondary,
-      textAlign: 'center',
-    },
-    inputContainer: {
-      marginBottom: 16,
-    },
-    label: {
-      fontSize: 14,
-      fontWeight: '600',
+      fontSize: 42,
+      fontFamily: displayFont,
       color: colors.text,
-      marginBottom: 8,
+      marginBottom: 6,
     },
-    input: {
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 12,
-      padding: 16,
-      fontSize: 16,
-      color: colors.text,
-    },
-    inputWrapper: {
-      position: 'relative',
-    },
-    inputWithIcon: {
-      paddingRight: 52,
-    },
-    eyeButton: {
-      position: 'absolute',
-      right: 16,
-      top: 0,
-      bottom: 0,
-      justifyContent: 'center',
-    },
-    errorText: {
-      color: colors.error,
-      fontSize: 14,
-      marginBottom: 12,
-      textAlign: 'center',
-    },
-    forgotPassword: {
-      alignSelf: 'flex-end',
-      marginTop: 8,
-      marginBottom: 24,
-    },
-    forgotPasswordText: {
-      color: colors.primary,
-      fontSize: 14,
-      fontWeight: '500',
-    },
-    loginButton: {
-      backgroundColor: colors.primary,
-      padding: 16,
-      borderRadius: 12,
-      alignItems: 'center',
-      marginBottom: 24,
-    },
-    loginButtonText: {
-      color: '#ffffff',
-      fontSize: 16,
-      fontWeight: '600',
-    },
-    divider: {
+    subtitle: { fontSize: 16, color: colors.textSecondary, textAlign: 'center' },
+    inputContainer: { marginBottom: 16 },
+    errorBanner: {
+      backgroundColor: `${colors.error}16`,
+      borderRadius: 14,
+      padding: 12,
+      marginBottom: 14,
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: 24,
+      gap: 8,
     },
-    dividerLine: {
-      flex: 1,
-      height: 1,
-      backgroundColor: colors.border,
-    },
-    dividerText: {
-      color: colors.textSecondary,
-      paddingHorizontal: 16,
-      fontSize: 14,
-    },
-    socialButtons: {
-      gap: 12,
-      marginBottom: 32,
-    },
+    errorText: { color: colors.error, fontSize: 14, flex: 1 },
+    forgotPassword: { alignSelf: 'flex-end', marginTop: 8, marginBottom: 24 },
+    forgotPasswordText: { color: colors.primary, fontSize: 14, fontWeight: '600' },
+    divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 24 },
+    dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
+    dividerText: { color: colors.textSecondary, paddingHorizontal: 16, fontSize: 13 },
+    socialButtons: { gap: 12, marginBottom: 32 },
     socialButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
       backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
-      padding: 16,
-      borderRadius: 12,
-      gap: 12,
+      borderWidth: 1, borderColor: colors.border,
+      padding: 15, borderRadius: 16, gap: 12,
     },
-    socialButtonText: {
-      color: colors.text,
-      fontSize: 16,
-      fontWeight: '500',
-    },
-    signupContainer: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    signupText: {
-      color: colors.textSecondary,
-      fontSize: 14,
-    },
-    signupLink: {
-      color: colors.primary,
-      fontSize: 14,
-      fontWeight: '600',
-      marginLeft: 4,
-    },
+    socialButtonText: { color: colors.text, fontSize: 15, fontWeight: '600' },
+    signupContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+    signupText: { color: colors.textSecondary, fontSize: 14 },
+    signupLink: { color: colors.primary, fontSize: 14, fontWeight: '700', marginLeft: 6 },
   });
 
   return (
@@ -209,37 +117,31 @@ export default function LoginScreen() {
         {isAuthLoading ? (
           <>
             <View style={styles.header}>
-              <Skeleton width={220} height={40} borderRadius={12} />
-              <Skeleton width={180} height={18} style={{ marginTop: 8 }} />
+              <Skeleton width={76} height={76} borderRadius={38} style={{ marginBottom: 18 }} />
+              <Skeleton width={180} height={42} borderRadius={12} />
+              <Skeleton width={200} height={18} style={{ marginTop: 8 }} />
             </View>
-
             <View style={styles.inputContainer}>
-              <Skeleton width={70} height={16} style={{ marginBottom: 8 }} />
-              <Skeleton height={54} borderRadius={12} />
+              <Skeleton width={70} height={14} style={{ marginBottom: 8 }} />
+              <Skeleton height={54} borderRadius={16} />
             </View>
-
             <View style={styles.inputContainer}>
-              <Skeleton width={70} height={16} style={{ marginBottom: 8 }} />
-              <Skeleton height={54} borderRadius={12} />
+              <Skeleton width={70} height={14} style={{ marginBottom: 8 }} />
+              <Skeleton height={54} borderRadius={16} />
             </View>
-
             <View style={styles.forgotPassword}>
               <Skeleton width={120} height={16} />
             </View>
-
-            <Skeleton height={54} borderRadius={12} style={{ marginBottom: 24 }} />
-
+            <Skeleton height={54} borderRadius={18} />
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
               <Skeleton width={130} height={14} style={{ marginHorizontal: 16 }} />
               <View style={styles.dividerLine} />
             </View>
-
             <View style={styles.socialButtons}>
-              <Skeleton height={54} borderRadius={12} />
-              <Skeleton height={54} borderRadius={12} />
+              <Skeleton height={52} borderRadius={16} />
+              <Skeleton height={52} borderRadius={16} />
             </View>
-
             <View style={styles.signupContainer}>
               <Skeleton width={130} height={14} />
               <Skeleton width={90} height={14} style={{ marginLeft: 8 }} />
@@ -248,62 +150,48 @@ export default function LoginScreen() {
         ) : (
           <>
             <View style={styles.header}>
-              <Text style={styles.title}>FlorizAI</Text>
-              <Text style={styles.subtitle}>Bem-vindo de volta!</Text>
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="seu@email.com"
-                placeholderTextColor={colors.textSecondary}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Senha</Text>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={[styles.input, styles.inputWithIcon]}
-                  placeholder="********"
-                  placeholderTextColor={colors.textSecondary}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  autoComplete="password"
-                />
-                <Pressable
-                  style={styles.eyeButton}
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <Ionicons
-                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                </Pressable>
+              <View style={styles.logoMark}>
+                <Ionicons name="leaf" size={36} color={colors.primary} />
               </View>
+              <Text style={styles.title}>Floriz</Text>
+              <Text style={styles.subtitle}>Suas plantas, bem cuidadas.</Text>
             </View>
+
+            <Input
+              label="Email"
+              placeholder="seu@email.com"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+            />
+
+            <Input
+              label="Senha"
+              placeholder="********"
+              value={password}
+              onChangeText={setPassword}
+              password
+              autoComplete="password"
+            />
 
             <Pressable style={styles.forgotPassword} onPress={handleForgotPassword}>
               <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
             </Pressable>
 
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            {error ? (
+              <View style={styles.errorBanner}>
+                <Ionicons name="alert-circle" size={18} color={colors.error} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
 
-            <Pressable
-              style={[styles.loginButton, submitting && { opacity: 0.6 }]}
+            <PrimaryButton
+              label={submitting ? 'Entrando...' : 'Entrar'}
               onPress={handleLogin}
-              disabled={submitting}
-            >
-              <Text style={styles.loginButtonText}>{submitting ? 'Entrando...' : 'Entrar'}</Text>
-            </Pressable>
+              loading={submitting}
+            />
 
             <View style={styles.divider}>
               <View style={styles.dividerLine} />

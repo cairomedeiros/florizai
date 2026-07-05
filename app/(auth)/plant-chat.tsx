@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,6 +16,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Skeleton } from '../../components/Skeleton';
+import { ScreenHeader } from '../../components/ui';
+import { usePlants } from '../../contexts/PlantContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import * as api from '../../lib/api';
 
@@ -26,22 +30,68 @@ type Message = {
 
 const GREETING: Message = {
   id: 'greeting',
-  text: 'Ola! Como posso ajudar voce a cuidar melhor da sua planta hoje?',
+  text: 'Olá! Como posso ajudar você a cuidar melhor da sua planta hoje?',
   isBot: true,
   timestamp: new Date(),
 };
 
+const SUGGESTIONS = [
+  'Com que frequência devo regar?',
+  'Por que as folhas estão amareladas?',
+  'Quanto sol ela precisa?',
+];
+
+function TypingDots({ color }: { color: string }) {
+  const dots = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+
+  useEffect(() => {
+    const loops = dots.map((dot, i) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(i * 160),
+          Animated.timing(dot, { toValue: 1, duration: 320, useNativeDriver: true }),
+          Animated.timing(dot, { toValue: 0, duration: 320, useNativeDriver: true }),
+          Animated.delay((2 - i) * 160),
+        ])
+      )
+    );
+    loops.forEach((l) => l.start());
+    return () => loops.forEach((l) => l.stop());
+  }, [dots]);
+
+  return (
+    <View style={{ flexDirection: 'row', gap: 5, paddingVertical: 4 }}>
+      {dots.map((dot, i) => (
+        <Animated.View
+          key={i}
+          style={{
+            width: 7,
+            height: 7,
+            borderRadius: 3.5,
+            backgroundColor: color,
+            opacity: dot.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1] }),
+            transform: [{ translateY: dot.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }],
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
 export default function PlantChatScreen() {
   const { colors } = useTheme();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { plants } = usePlants();
   const { id: plantId } = useLocalSearchParams<{ id?: string }>();
+
+  const plantName = plants.find((p) => p.id === plantId)?.name;
 
   const [isLoading, setIsLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatId, setChatId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     let active = true;
@@ -52,7 +102,16 @@ export default function PlantChatScreen() {
           setMessages([GREETING]);
           return;
         }
-        const chat = await api.createChat(plantId);
+        // /chat/create makes a NEW chat every call, so reuse the plant's chat id
+        // from storage — otherwise each screen open starts over and the history
+        // is orphaned in the previous chat.
+        const storageKey = `@florizai:chat:${plantId}`;
+        const storedId = await AsyncStorage.getItem(storageKey);
+        let chat = storedId ? await api.getChat(storedId).catch(() => null) : null;
+        if (!chat) {
+          chat = await api.createChat(plantId);
+          await AsyncStorage.setItem(storageKey, chat.id);
+        }
         if (!active) return;
         setChatId(chat.id);
         const history = await api.listMessages(chat.id);
@@ -85,8 +144,8 @@ export default function PlantChatScreen() {
     ]);
   };
 
-  const handleSend = async () => {
-    const question = input.trim();
+  const send = async (raw: string) => {
+    const question = raw.trim();
     if (!question || sending) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     addMessage(question, false);
@@ -107,96 +166,84 @@ export default function PlantChatScreen() {
     }
   };
 
+  const handleSend = () => send(input);
+
+  const formatTime = (date: Date) =>
+    date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
   const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
+    container: { flex: 1, backgroundColor: colors.background },
+    messagesContainer: { flex: 1, paddingHorizontal: 20 },
+    messageRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 14 },
+    botAvatar: {
+      width: 30, height: 30, borderRadius: 15,
+      backgroundColor: colors.primarySoft,
+      alignItems: 'center', justifyContent: 'center',
     },
-    header: {
-      paddingTop: 50,
-      paddingHorizontal: 20,
-      paddingBottom: 16,
-      backgroundColor: colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    },
-    backButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: colors.background,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    headerTitle: {
-      flex: 1,
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: colors.text,
-    },
-    messagesContainer: {
-      flex: 1,
-      padding: 20,
-    },
-    messageBubble: {
-      maxWidth: '80%',
-      padding: 16,
-      borderRadius: 16,
-      marginBottom: 12,
-    },
+    messageBubble: { maxWidth: '78%', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 20 },
     botBubble: {
-      alignSelf: 'flex-start',
       backgroundColor: colors.surface,
-      borderWidth: 1,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
+      borderBottomLeftRadius: 6,
     },
     userBubble: {
       alignSelf: 'flex-end',
       backgroundColor: colors.primary,
+      borderBottomRightRadius: 6,
+      marginLeft: 'auto',
     },
-    messageText: {
-      fontSize: 16,
-      lineHeight: 22,
+    messageText: { fontSize: 15.5, lineHeight: 22 },
+    botText: { color: colors.text },
+    userText: { color: colors.onPrimary },
+    timestamp: { fontSize: 10.5, marginTop: 5 },
+    botTimestamp: { color: colors.textSecondary },
+    userTimestamp: { color: colors.onPrimary, opacity: 0.65, textAlign: 'right' },
+    suggestions: { gap: 8, marginTop: 4, marginBottom: 14, marginLeft: 38 },
+    suggestionChip: {
+      alignSelf: 'flex-start',
+      backgroundColor: colors.primarySoft,
+      borderRadius: 999,
+      paddingVertical: 9,
+      paddingHorizontal: 15,
     },
-    botText: {
-      color: colors.text,
-    },
-    userText: {
-      color: '#ffffff',
-    },
+    suggestionText: { color: colors.primary, fontSize: 13.5, fontWeight: '600' },
     inputContainer: {
       flexDirection: 'row',
-      padding: 16,
-      paddingBottom: 16 + insets.bottom,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-      backgroundColor: colors.surface,
-      alignItems: 'center',
-      gap: 12,
+      padding: 14,
+      paddingBottom: 14 + insets.bottom,
+      backgroundColor: colors.background,
+      alignItems: 'flex-end',
+      gap: 10,
     },
     input: {
       flex: 1,
-      backgroundColor: colors.background,
-      borderWidth: 1,
+      backgroundColor: colors.surface,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
       borderRadius: 24,
-      paddingHorizontal: 16,
+      paddingHorizontal: 18,
       paddingVertical: 12,
-      fontSize: 16,
+      fontSize: 15.5,
       color: colors.text,
+      maxHeight: 120,
     },
     sendButton: {
       backgroundColor: colors.primary,
-      width: 48,
-      height: 48,
-      borderRadius: 24,
+      width: 46,
+      height: 46,
+      borderRadius: 23,
       alignItems: 'center',
       justifyContent: 'center',
     },
+    sendButtonDisabled: { backgroundColor: colors.surfaceAlt },
   });
+
+  const BotAvatar = () => (
+    <View style={styles.botAvatar}>
+      <Ionicons name="leaf" size={15} color={colors.primary} />
+    </View>
+  );
 
   if (isLoading) {
     return (
@@ -205,29 +252,21 @@ export default function PlantChatScreen() {
         style={styles.container}
         keyboardVerticalOffset={0}
       >
-        <View style={styles.header}>
-          <Skeleton width={36} height={36} borderRadius={18} />
-          <Skeleton width={170} height={24} borderRadius={10} />
+        <ScreenHeader title={plantName ?? 'Assistente'} />
+        <View style={[styles.messagesContainer, { paddingTop: 8 }]}>
+          <Skeleton width="78%" height={64} borderRadius={20} style={{ marginBottom: 14 }} />
+          <Skeleton width="62%" height={56} borderRadius={20} style={{ marginBottom: 14, alignSelf: 'flex-end' }} />
+          <Skeleton width="75%" height={72} borderRadius={20} style={{ marginBottom: 14 }} />
         </View>
-
-        <View style={styles.messagesContainer}>
-          <Skeleton width="78%" height={64} borderRadius={16} style={{ marginBottom: 12 }} />
-          <Skeleton
-            width="62%"
-            height={56}
-            borderRadius={16}
-            style={{ marginBottom: 12, alignSelf: 'flex-end' }}
-          />
-          <Skeleton width="75%" height={72} borderRadius={16} style={{ marginBottom: 12 }} />
-        </View>
-
         <View style={styles.inputContainer}>
-          <Skeleton height={48} borderRadius={24} style={{ flex: 1 }} />
-          <Skeleton width={48} height={48} borderRadius={24} />
+          <Skeleton height={46} borderRadius={23} style={{ flex: 1 }} />
+          <Skeleton width={46} height={46} borderRadius={23} />
         </View>
       </KeyboardAvoidingView>
     );
   }
+
+  const showSuggestions = messages.length <= 1 && !sending;
 
   return (
     <KeyboardAvoidingView
@@ -235,42 +274,66 @@ export default function PlantChatScreen() {
       style={styles.container}
       keyboardVerticalOffset={0}
     >
-      <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Chat com a Planta</Text>
-      </View>
+      <ScreenHeader title={plantName ?? 'Assistente'} />
 
       <ScrollView
+        ref={scrollRef}
         style={styles.messagesContainer}
-        contentContainerStyle={{ paddingBottom: 20 }}
+        contentContainerStyle={{ paddingTop: 8, paddingBottom: 20 }}
         keyboardShouldPersistTaps="handled"
+        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
       >
-        {messages.map((message) => (
-          <View
-            key={message.id}
-            style={[
-              styles.messageBubble,
-              message.isBot ? styles.botBubble : styles.userBubble,
-            ]}
-          >
-            <Text
-              style={[
-                styles.messageText,
-                message.isBot ? styles.botText : styles.userText,
-              ]}
-            >
-              {message.text}
-            </Text>
+        {messages.map((message) =>
+          message.isBot ? (
+            <View key={message.id} style={styles.messageRow}>
+              <BotAvatar />
+              <View style={[styles.messageBubble, styles.botBubble]}>
+                <Text style={[styles.messageText, styles.botText]}>{message.text}</Text>
+                <Text style={[styles.timestamp, styles.botTimestamp]}>
+                  {formatTime(message.timestamp)}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View key={message.id} style={styles.messageRow}>
+              <View style={[styles.messageBubble, styles.userBubble]}>
+                <Text style={[styles.messageText, styles.userText]}>{message.text}</Text>
+                <Text style={[styles.timestamp, styles.userTimestamp]}>
+                  {formatTime(message.timestamp)}
+                </Text>
+              </View>
+            </View>
+          )
+        )}
+
+        {showSuggestions && (
+          <View style={styles.suggestions}>
+            {SUGGESTIONS.map((s) => (
+              <Pressable
+                key={s}
+                style={({ pressed }) => [styles.suggestionChip, pressed && { opacity: 0.65 }]}
+                onPress={() => send(s)}
+              >
+                <Text style={styles.suggestionText}>{s}</Text>
+              </Pressable>
+            ))}
           </View>
-        ))}
+        )}
+
+        {sending && (
+          <View style={styles.messageRow}>
+            <BotAvatar />
+            <View style={[styles.messageBubble, styles.botBubble]}>
+              <TypingDots color={colors.primary} />
+            </View>
+          </View>
+        )}
       </ScrollView>
 
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Faca uma pergunta..."
+          placeholder="Faça uma pergunta..."
           placeholderTextColor={colors.textSecondary}
           value={input}
           onChangeText={setInput}
@@ -279,11 +342,19 @@ export default function PlantChatScreen() {
           multiline
         />
         <Pressable
-          style={styles.sendButton}
+          style={({ pressed }) => [
+            styles.sendButton,
+            (!input.trim() || sending) && styles.sendButtonDisabled,
+            pressed && { transform: [{ scale: 0.92 }] },
+          ]}
           onPress={handleSend}
           disabled={!input.trim() || sending}
         >
-          <Ionicons name="send" size={20} color="#ffffff" />
+          <Ionicons
+            name="arrow-up"
+            size={21}
+            color={!input.trim() || sending ? colors.textSecondary : colors.onPrimary}
+          />
         </Pressable>
       </View>
     </KeyboardAvoidingView>

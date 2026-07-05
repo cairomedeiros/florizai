@@ -1,15 +1,18 @@
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import * as Notifications from 'expo-notifications';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import * as api from '../lib/api';
 import { useAuth } from './AuthContext';
 
 // ponytail: notifications no-op on web AND in Expo Go (SDK 53+ removed
-// expo-notifications there — needs a dev build). All notify calls are gated on
-// this flag, so flipping it false skips them entirely.
+// expo-notifications there — needs a dev build). Even a static import triggers
+// push-token auto-registration (and an ERROR log in Expo Go), so the module is
+// only require()d when it can actually run.
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 const canNotify = Platform.OS !== 'web' && !isExpoGo;
+const Notifications: typeof import('expo-notifications') | null = canNotify
+  ? require('expo-notifications')
+  : null;
 
 // Fallback cadence when the backend hasn't inferred one yet (LLM sets
 // watering_interval_days from name+description, then refines via the photo).
@@ -39,7 +42,7 @@ interface PlantContextType {
 
 const PlantContext = createContext<PlantContextType | undefined>(undefined);
 
-if (canNotify) {
+if (Notifications) {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -52,7 +55,7 @@ if (canNotify) {
 }
 
 async function scheduleWateringNotification(plant: Plant) {
-  if (!canNotify) return;
+  if (!Notifications) return;
   await Notifications.cancelScheduledNotificationAsync(plant.id).catch(() => {});
 
   const trigger = new Date(plant.nextWatering);
@@ -130,7 +133,7 @@ export function PlantProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     loadPlants();
-    if (canNotify) Notifications.requestPermissionsAsync();
+    Notifications?.requestPermissionsAsync();
   }, [user, loadPlants]);
 
   const addPlant = async (data: { name: string; description?: string; imageUri?: string; nextWatering: Date }) => {
@@ -157,7 +160,7 @@ export function PlantProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deletePlant = async (id: string) => {
-    if (canNotify) await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
+    if (Notifications) await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
     await api.deletePlant(id);
     setPlants((prev) => prev.filter((p) => p.id !== id));
   };

@@ -1,21 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Skeleton } from '../../components/Skeleton';
+import { Chip, IconButton, displayFont, ScreenHeader } from '../../components/ui';
 import { usePlants } from '../../contexts/PlantContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import * as api from '../../lib/api';
 
 type WateringEvent = {
+  id: string;
   date: string; // YYYY-MM-DD
-  watered: boolean;
 };
 
 export default function WateringCalendarScreen() {
   const { colors } = useTheme();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { plants } = usePlants();
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -35,7 +35,7 @@ export default function WateringCalendarScreen() {
     }
     try {
       const events = await api.listWateringEvents(plantId).catch(() => []);
-      setWateringEvents(events.map((e) => ({ date: e.watered_at.split('T')[0], watered: true })));
+      setWateringEvents(events.map((e) => ({ id: e.id, date: e.watered_at.split('T')[0] })));
     } finally {
       setIsLoading(false);
     }
@@ -46,7 +46,7 @@ export default function WateringCalendarScreen() {
   }, [load]);
 
   const monthNames = [
-    'Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho',
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
   ];
 
@@ -61,28 +61,49 @@ export default function WateringCalendarScreen() {
     return { daysInMonth, startDayOfWeek, year, month };
   };
 
-  const isDateWatered = (day: number) => {
+  const dateStrFor = (day: number) => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return wateringEvents.some((event) => event.date === dateStr && event.watered);
+    return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   };
 
-  // ponytail: API can create a watering event but not delete a single one
-  // (only delete-all per plant), so tapping a day is add-only, not a toggle.
+  const isDateWatered = (day: number) =>
+    wateringEvents.some((event) => event.date === dateStrFor(day));
+
   const toggleWatering = async (day: number) => {
     if (!plantId) return;
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    if (wateringEvents.some((e) => e.date === dateStr)) return;
+    const dateStr = dateStrFor(day);
+    const existing = wateringEvents.filter((e) => e.date === dateStr);
 
-    setWateringEvents((prev) => [...prev, { date: dateStr, watered: true }]); // optimistic
+    if (existing.length > 0) {
+      // A temp entry means the create is still in flight — ignore the tap.
+      if (existing.some((e) => e.id.startsWith('temp-'))) return;
+      // Un-water: optimistically clear the day, delete every event on it.
+      setWateringEvents((prev) => prev.filter((e) => e.date !== dateStr));
+      try {
+        await Promise.all(existing.map((e) => api.deleteWateringEvent(e.id)));
+      } catch (e) {
+        console.error('Failed to remove watering', e);
+        setWateringEvents((prev) => [...prev, ...existing]); // rollback
+      }
+      return;
+    }
+
+    // Water: optimistic temp entry, swapped for the real id on success
+    // (the id is what a later un-water needs).
+    const temp = { id: `temp-${dateStr}`, date: dateStr };
+    setWateringEvents((prev) => [...prev, temp]);
     try {
-      await api.addWateringEvent(plantId, new Date(year, month, day, 12).toISOString());
+      const created = await api.addWateringEvent(
+        plantId,
+        new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day, 12).toISOString()
+      );
+      setWateringEvents((prev) =>
+        prev.map((ev) => (ev.id === temp.id ? { id: created.id, date: dateStr } : ev))
+      );
     } catch (e) {
       console.error('Failed to log watering', e);
-      setWateringEvents((prev) => prev.filter((ev) => ev.date !== dateStr)); // rollback
+      setWateringEvents((prev) => prev.filter((ev) => ev.id !== temp.id)); // rollback
     }
   };
 
@@ -135,233 +156,88 @@ export default function WateringCalendarScreen() {
   };
 
   const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    header: {
-      paddingTop: 50,
-      paddingHorizontal: 20,
-      paddingBottom: 16,
-      backgroundColor: colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    },
-    backButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: colors.background,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    headerTitle: {
-      flex: 1,
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: colors.text,
-    },
-    content: {
-      flex: 1,
-      padding: 20,
-    },
-    overviewToggle: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 20,
-      borderWidth: 1,
-      borderColor: colors.border,
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { flex: 1, paddingHorizontal: 20 },
+    monthNavigator: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+      marginTop: 4,
+      marginBottom: 18,
     },
-    overviewToggleText: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: colors.text,
-    },
-    overviewToggleIcon: {
-      fontSize: 16,
-      color: colors.textSecondary,
-    },
-    yearOverview: {
+    monthText: { fontSize: 20, fontFamily: displayFont, color: colors.text },
+    calendar: {
       backgroundColor: colors.surface,
-      borderRadius: 16,
+      borderRadius: 24,
+      padding: 14,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      shadowColor: '#1B2A21',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
+      elevation: 2,
+    },
+    weekDaysRow: { flexDirection: 'row', marginBottom: 8 },
+    weekDay: { flex: 1, alignItems: 'center', paddingVertical: 8 },
+    weekDayText: { fontSize: 12.5, fontWeight: '700', color: colors.textSecondary },
+    daysGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+    dayCell: { width: `${100 / 7}%`, aspectRatio: 1, padding: 3 },
+    dayButton: {
+      flex: 1,
+      borderRadius: 999,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dayButtonWatered: { backgroundColor: colors.water },
+    dayButtonToday: { borderWidth: 2, borderColor: colors.primary },
+    dayText: { fontSize: 14, color: colors.text },
+    dayTextWatered: { color: '#ffffff', fontWeight: '700' },
+    legendRow: { flexDirection: 'row', gap: 8, marginTop: 16 },
+    overviewToggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.surface,
+      borderRadius: 18,
       padding: 16,
-      marginBottom: 20,
-      borderWidth: 1,
+      marginTop: 20,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
     },
-    yearOverviewTitle: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: colors.text,
-      marginBottom: 16,
+    overviewToggleText: { fontSize: 15, fontWeight: '700', color: colors.text },
+    yearOverview: {
+      backgroundColor: colors.surface,
+      borderRadius: 20,
+      padding: 16,
+      marginTop: 10,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
     },
-    monthsGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8,
-    },
+    monthsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     monthChip: {
       width: `${(100 - 3 * 8) / 4}%`,
       backgroundColor: colors.background,
-      borderRadius: 12,
+      borderRadius: 14,
       padding: 12,
       borderWidth: 1,
       borderColor: colors.border,
       alignItems: 'center',
     },
-    monthChipActive: {
-      borderColor: colors.primary,
-      borderWidth: 2,
-    },
-    monthChipName: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.text,
-      marginBottom: 6,
-    },
-    monthChipCount: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: colors.primary,
-    },
-    monthChipLabel: {
-      fontSize: 10,
-      color: colors.textSecondary,
-      marginTop: 2,
-    },
-    monthNavigator: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 24,
-    },
-    navButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    monthText: {
-      fontSize: 18,
-      fontWeight: '600',
-      color: colors.text,
-    },
-    calendar: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      padding: 16,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    weekDaysRow: {
-      flexDirection: 'row',
-      marginBottom: 12,
-    },
-    weekDay: {
-      flex: 1,
-      alignItems: 'center',
-      paddingVertical: 8,
-    },
-    weekDayText: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.textSecondary,
-    },
-    daysGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-    },
-    dayCell: {
-      width: `${100 / 7}%`,
-      aspectRatio: 1,
-      padding: 4,
-    },
-    dayButton: {
-      flex: 1,
-      borderRadius: 8,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.background,
-    },
-    dayButtonWatered: {
-      backgroundColor: colors.primary,
-    },
-    dayButtonToday: {
-      borderWidth: 2,
-      borderColor: colors.primary,
-    },
-    dayText: {
-      fontSize: 14,
-      color: colors.text,
-    },
-    dayTextWatered: {
-      color: '#ffffff',
-      fontWeight: 'bold',
-    },
-    legend: {
-      marginTop: 24,
-      padding: 16,
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    legendTitle: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: colors.text,
-      marginBottom: 12,
-    },
-    legendItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 8,
-    },
-    legendBox: {
-      width: 24,
-      height: 24,
-      borderRadius: 6,
-      marginRight: 12,
-    },
-    legendBoxWatered: {
-      backgroundColor: colors.primary,
-    },
-    legendBoxEmpty: {
-      backgroundColor: colors.background,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    legendText: {
-      fontSize: 14,
-      color: colors.textSecondary,
-    },
+    monthChipActive: { borderColor: colors.primary, borderWidth: 2 },
+    monthChipName: { fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 6 },
+    monthChipCount: { fontSize: 18, fontFamily: displayFont, color: colors.water },
+    monthChipLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 2 },
   });
 
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Skeleton width={36} height={36} borderRadius={18} />
-          <Skeleton width={220} height={24} borderRadius={10} />
-        </View>
-
-        <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom }}>
-          <Skeleton height={56} borderRadius={12} style={{ marginBottom: 20 }} />
-
+        <ScreenHeader title="Calendário de rega" />
+        <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}>
           <View style={styles.monthNavigator}>
             <Skeleton width={40} height={40} borderRadius={20} />
-            <Skeleton width={140} height={22} />
+            <Skeleton width={150} height={24} />
             <Skeleton width={40} height={40} borderRadius={20} />
           </View>
 
@@ -373,26 +249,18 @@ export default function WateringCalendarScreen() {
                 </View>
               ))}
             </View>
-
             <View style={styles.daysGrid}>
               {Array.from({ length: 35 }).map((_, index) => (
                 <View key={index} style={styles.dayCell}>
-                  <Skeleton height={34} borderRadius={8} />
+                  <Skeleton height={38} borderRadius={19} />
                 </View>
               ))}
             </View>
           </View>
 
-          <View style={styles.legend}>
-            <Skeleton width={70} height={16} style={{ marginBottom: 12 }} />
-            <View style={styles.legendItem}>
-              <Skeleton width={24} height={24} borderRadius={6} style={{ marginRight: 12 }} />
-              <Skeleton width={110} height={14} />
-            </View>
-            <View style={styles.legendItem}>
-              <Skeleton width={24} height={24} borderRadius={6} style={{ marginRight: 12 }} />
-              <Skeleton width={90} height={14} />
-            </View>
+          <View style={styles.legendRow}>
+            <Skeleton width={110} height={28} borderRadius={14} />
+            <Skeleton width={90} height={28} borderRadius={14} />
           </View>
         </ScrollView>
       </View>
@@ -401,25 +269,76 @@ export default function WateringCalendarScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Calendario de Rega</Text>
-      </View>
+      <ScreenHeader title="Calendário de rega" />
 
-      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom }}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}>
+        <View style={styles.monthNavigator}>
+          <IconButton icon="chevron-back" onPress={() => changeMonth('prev')} />
+          <Text style={styles.monthText}>
+            {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+          </Text>
+          <IconButton icon="chevron-forward" onPress={() => changeMonth('next')} />
+        </View>
+
+        <View style={styles.calendar}>
+          <View style={styles.weekDaysRow}>
+            {weekDays.map((day, index) => (
+              <View key={`${day}-${index}`} style={styles.weekDay}>
+                <Text style={styles.weekDayText}>{day}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.daysGrid}>
+            {Array.from({ length: startDayOfWeek }).map((_, index) => (
+              <View key={`empty-${index}`} style={styles.dayCell} />
+            ))}
+
+            {Array.from({ length: daysInMonth }).map((_, index) => {
+              const day = index + 1;
+              const watered = isDateWatered(day);
+              const todayDate = isToday(day);
+
+              return (
+                <View key={day} style={styles.dayCell}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.dayButton,
+                      watered && styles.dayButtonWatered,
+                      todayDate && styles.dayButtonToday,
+                      pressed && !watered && { backgroundColor: colors.waterSoft },
+                    ]}
+                    onPress={() => toggleWatering(day)}
+                  >
+                    <Text style={[styles.dayText, watered && styles.dayTextWatered]}>
+                      {day}
+                    </Text>
+                  </Pressable>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.legendRow}>
+          <Chip icon="water" label="Dia com rega" color={colors.water} background={colors.waterSoft} />
+          <Chip icon="ellipse-outline" label="Hoje" color={colors.primary} background={colors.primarySoft} />
+        </View>
+
         <Pressable
           style={styles.overviewToggle}
           onPress={() => setShowOverview(!showOverview)}
         >
-          <Text style={styles.overviewToggleText}>Visao Anual {new Date().getFullYear()}</Text>
-          <Text style={styles.overviewToggleIcon}>{showOverview ? 'v' : '>'}</Text>
+          <Text style={styles.overviewToggleText}>Visão anual {new Date().getFullYear()}</Text>
+          <Ionicons
+            name={showOverview ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={colors.textSecondary}
+          />
         </Pressable>
 
         {showOverview && (
           <View style={styles.yearOverview}>
-            <Text style={styles.yearOverviewTitle}>Resumo de Rega por Mes</Text>
             <View style={styles.monthsGrid}>
               {getYearMonths().map((monthData) => {
                 const isCurrentMonth =
@@ -445,69 +364,6 @@ export default function WateringCalendarScreen() {
             </View>
           </View>
         )}
-
-        <View style={styles.monthNavigator}>
-          <Pressable style={styles.navButton} onPress={() => changeMonth('prev')}>
-            <Ionicons name="chevron-back" size={24} color={colors.text} />
-          </Pressable>
-          <Text style={styles.monthText}>
-            {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-          </Text>
-          <Pressable style={styles.navButton} onPress={() => changeMonth('next')}>
-            <Ionicons name="chevron-forward" size={24} color={colors.text} />
-          </Pressable>
-        </View>
-
-        <View style={styles.calendar}>
-          <View style={styles.weekDaysRow}>
-            {weekDays.map((day, index) => (
-              <View key={`${day}-${index}`} style={styles.weekDay}>
-                <Text style={styles.weekDayText}>{day}</Text>
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.daysGrid}>
-            {Array.from({ length: startDayOfWeek }).map((_, index) => (
-              <View key={`empty-${index}`} style={styles.dayCell} />
-            ))}
-
-            {Array.from({ length: daysInMonth }).map((_, index) => {
-              const day = index + 1;
-              const watered = isDateWatered(day);
-              const todayDate = isToday(day);
-
-              return (
-                <View key={day} style={styles.dayCell}>
-                  <Pressable
-                    style={[
-                      styles.dayButton,
-                      watered && styles.dayButtonWatered,
-                      todayDate && styles.dayButtonToday,
-                    ]}
-                    onPress={() => toggleWatering(day)}
-                  >
-                    <Text style={[styles.dayText, watered && styles.dayTextWatered]}>
-                      {day}
-                    </Text>
-                  </Pressable>
-                </View>
-              );
-            })}
-          </View>
-        </View>
-
-        <View style={styles.legend}>
-          <Text style={styles.legendTitle}>Legenda</Text>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendBox, styles.legendBoxWatered]} />
-            <Text style={styles.legendText}>Dia que voce regou</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendBox, styles.legendBoxEmpty]} />
-            <Text style={styles.legendText}>Dia sem rega</Text>
-          </View>
-        </View>
       </ScrollView>
     </View>
   );
